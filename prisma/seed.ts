@@ -2,410 +2,238 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import {
-  PrismaClient,
-  PermissionScope,
-  UserStatus,
   MemberRole,
+  PermissionScope,
+  PrismaClient,
   TenantStatus,
+  UserStatus,
 } from "../app/generated/prisma/client";
 import {
-  ROLE_SUPER_ADMIN,
-  ROLE_ORG_ADMIN,
-  ROLE_MANAGER,
-  ROLE_CFO,
-  ROLE_FINANCE_MANAGER,
-  ROLE_AUDITOR,
-  ROLE_EMPLOYEE,
-  ROLE_AI_AGENT,
-  SYSTEM_ROLES,
-  RESOURCES,
   ACTIONS,
+  RESOURCES,
+  ROLE_ORG_ADMIN,
+  permissionKey,
 } from "../lib/auth/constants";
 import { hashPassword } from "../lib/auth/password";
-import { seedConfigurationData } from "./seed-configuration";
 import { seedFinanceData } from "./seed-finance";
 import { seedWorkflows } from "./seed-workflows";
 
-const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const pool = new Pool({
+  connectionString: process.env.DATABASE_URL,
+  max: Number(process.env.DATABASE_POOL_MAX ?? 5),
+});
 const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 
-const ROLE_PERMISSIONS: Record<string, string[]> = {
-  [ROLE_SUPER_ADMIN]: ["*"],
-  [ROLE_ORG_ADMIN]: [
-    "organization:manage",
-    "user:manage",
-    "role:manage",
-    "department:manage",
-    "workflow:manage",
-    "integration:manage",
-    "audit:read",
-  ],
-  [ROLE_CFO]: [
-    "invoice:manage",
-    "payment:manage",
-    "expense:manage",
-    "compliance:read",
-    "audit:read",
-    "document:read",
-  ],
-  [ROLE_MANAGER]: [
-    "workflow:manage",
-    "invoice:read",
-    "payment:read",
-    "expense:manage",
-    "document:read",
-    "department:read",
-  ],
-  [ROLE_FINANCE_MANAGER]: [
-    "invoice:create",
-    "invoice:read",
-    "invoice:update",
-    "payment:create",
-    "payment:read",
-    "expense:create",
-    "expense:read",
-    "expense:update",
-  ],
-  [ROLE_AUDITOR]: [
-    "audit:read",
-    "invoice:read",
-    "payment:read",
-    "expense:read",
-    "compliance:read",
-    "document:read",
-  ],
-  [ROLE_EMPLOYEE]: [
-    "workflow:read",
-    "document:read",
-    "document:create",
-    "expense:create",
-    "expense:read",
-  ],
-  [ROLE_AI_AGENT]: [
-    "ai_agent:manage",
-    "workflow:read",
-    "workflow:create",
-    "document:read",
-    "integration:read",
-  ],
-};
+const DEMO_ORG_SLUG = "acme-india";
+const DEMO_ORG_NAME = "Acme India Pvt Ltd";
+const ADMIN_EMAIL = "admin@acme-india.local";
+
+const ORG_ADMIN_PERMISSION_KEYS = [
+  "organization:manage",
+  "user:manage",
+  "role:manage",
+  "department:manage",
+  "workflow:manage",
+  "integration:manage",
+  "audit:read",
+] as const;
 
 async function seedPermissions() {
-  const permissions = [];
-  for (const resource of RESOURCES) {
-    for (const action of ACTIONS) {
-      permissions.push({
-        resource,
-        action,
-        scope: PermissionScope.ORGANIZATION,
-        description: `${action} ${resource}`,
-        isSystem: true,
-      });
-    }
-  }
-  for (const p of permissions) {
-    await prisma.permission.upsert({
-      where: {
-        resource_action_scope: {
-          resource: p.resource,
-          action: p.action,
-          scope: p.scope,
-        },
-      },
-      create: p,
-      update: {},
-    });
-  }
-}
+  const permissions = RESOURCES.flatMap((resource) =>
+    ACTIONS.map((action) => ({
+      resource,
+      action,
+      scope: PermissionScope.ORGANIZATION,
+      description: `${action} ${resource}`,
+      isSystem: true,
+    })),
+  );
 
-async function seedOrganization(params: {
-  slug: string;
-  name: string;
-  isPlatform?: boolean;
-}) {
-  return prisma.organization.upsert({
-    where: { slug: params.slug },
-    create: {
-      slug: params.slug,
-      name: params.name,
-      status: TenantStatus.ACTIVE,
-      gstin: params.isPlatform ? null : "29AABCU9603R1ZM",
-      pan: params.isPlatform ? null : "AABCU9603R",
-    },
-    update: { name: params.name },
+  await prisma.permission.createMany({
+    data: permissions,
+    skipDuplicates: true,
   });
 }
 
-async function seedRolesForOrg(organizationId: string, includeSuperAdmin: boolean) {
-  const rolesToSeed = includeSuperAdmin
-    ? SYSTEM_ROLES
-    : SYSTEM_ROLES.filter((r) => r !== ROLE_SUPER_ADMIN);
-
-  const allPermissions = await prisma.permission.findMany();
-
-  for (const slug of rolesToSeed) {
-    const role = await prisma.role.upsert({
-      where: { organizationId_slug: { organizationId, slug } },
-      create: {
-        organizationId,
-        name: slug.replace(/-/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-        slug,
-        isSystem: true,
-        description: `System role: ${slug}`,
+async function seedOrganization() {
+  return prisma.organization.upsert({
+    where: { slug: DEMO_ORG_SLUG },
+    create: {
+      slug: DEMO_ORG_SLUG,
+      name: DEMO_ORG_NAME,
+      status: TenantStatus.ACTIVE,
+      gstin: "29AABCU9603R1ZM",
+      pan: "AABCU9603R",
+      timezone: "Asia/Kolkata",
+      locale: "en-IN",
+      currency: "INR",
+      fiscalYearStartMonth: 4,
+      settings: {
+        seedProfile: "production-minimal",
+        seededAt: new Date().toISOString(),
       },
-      update: {},
-    });
-
-    const keys = ROLE_PERMISSIONS[slug] ?? [];
-    const permissionIds = new Set<string>();
-
-    for (const key of keys) {
-      if (key === "*") {
-        allPermissions.forEach((p) => permissionIds.add(p.id));
-        break;
-      }
-      const [resource, action] = key.split(":");
-      const match = allPermissions.filter(
-        (p) =>
-          p.resource === resource &&
-          (p.action === action || action === "manage"),
-      );
-      match.forEach((p) => permissionIds.add(p.id));
-    }
-
-    for (const permissionId of permissionIds) {
-      await prisma.rolePermission.upsert({
-        where: {
-          roleId_permissionId: { roleId: role.id, permissionId },
-        },
-        create: { roleId: role.id, permissionId },
-        update: {},
-      });
-    }
-  }
+    },
+    update: {
+      name: DEMO_ORG_NAME,
+      status: TenantStatus.ACTIVE,
+      settings: {
+        seedProfile: "production-minimal",
+        seededAt: new Date().toISOString(),
+      },
+    },
+  });
 }
 
-async function assignRole(
-  organizationId: string,
-  userId: string,
-  roleId: string,
-) {
-  const existing = await prisma.userRole.findFirst({
-    where: {
+async function seedOrgAdminRole(organizationId: string) {
+  const role = await prisma.role.upsert({
+    where: { organizationId_slug: { organizationId, slug: ROLE_ORG_ADMIN } },
+    create: {
       organizationId,
-      userId,
-      roleId,
-      departmentId: null,
+      name: "Organization Admin",
+      slug: ROLE_ORG_ADMIN,
+      isSystem: true,
+      description: "System role: organization administrator",
+    },
+    update: {
+      name: "Organization Admin",
+      isSystem: true,
+      description: "System role: organization administrator",
       deletedAt: null,
     },
   });
-  if (!existing) {
-    await prisma.userRole.create({
-      data: { organizationId, userId, roleId },
-    });
+
+  const allPermissions = await prisma.permission.findMany({
+    select: { id: true, resource: true, action: true },
+  });
+  const permissionIds = new Set<string>();
+  const requestedKeys = new Set<string>(ORG_ADMIN_PERMISSION_KEYS);
+
+  for (const permission of allPermissions) {
+    if (requestedKeys.has(permissionKey(permission.resource, permission.action))) {
+      permissionIds.add(permission.id);
+      continue;
+    }
+
+    if (requestedKeys.has(permissionKey(permission.resource, "manage"))) {
+      permissionIds.add(permission.id);
+    }
   }
+
+  await prisma.rolePermission.createMany({
+    data: [...permissionIds].map((permissionId) => ({
+      roleId: role.id,
+      permissionId,
+    })),
+    skipDuplicates: true,
+  });
+
+  return role;
 }
 
-async function main() {
-  console.log("Seeding RBAC and demo tenant...");
-
-  await seedPermissions();
-
-  const platform = await seedOrganization({
-    slug: process.env.PLATFORM_ORGANIZATION_SLUG ?? "platform",
-    name: "AI ERP Platform",
-    isPlatform: true,
-  });
-
-  const demo = await seedOrganization({
-    slug: "acme-india",
-    name: "Acme India Pvt Ltd",
-  });
-
-  await seedRolesForOrg(platform.id, true);
-  await seedRolesForOrg(demo.id, false);
-
-  const passwordHash = await hashPassword(
-    process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe@123",
-  );
-
+async function seedAdminUser(
+  organizationId: string,
+  roleId: string,
+  passwordHash: string,
+) {
   const admin = await prisma.user.upsert({
-    where: { email: "admin@acme-india.local" },
+    where: { email: ADMIN_EMAIL },
     create: {
-      email: "admin@acme-india.local",
+      email: ADMIN_EMAIL,
       passwordHash,
       status: UserStatus.ACTIVE,
       firstName: "Org",
       lastName: "Admin",
       emailVerified: new Date(),
     },
-    update: { passwordHash, status: UserStatus.ACTIVE },
-  });
-
-  const superAdmin = await prisma.user.upsert({
-    where: { email: "superadmin@platform.local" },
-    create: {
-      email: "superadmin@platform.local",
+    update: {
       passwordHash,
       status: UserStatus.ACTIVE,
-      firstName: "Super",
+      firstName: "Org",
       lastName: "Admin",
       emailVerified: new Date(),
+      deletedAt: null,
     },
-    update: { passwordHash, status: UserStatus.ACTIVE },
-  });
-
-  const cfo = await prisma.user.upsert({
-    where: { email: "cfo@acme-india.local" },
-    create: {
-      email: "cfo@acme-india.local",
-      passwordHash,
-      status: UserStatus.ACTIVE,
-      firstName: "Ananya",
-      lastName: "CFO",
-      emailVerified: new Date(),
-    },
-    update: { passwordHash, status: UserStatus.ACTIVE },
-  });
-
-  const financeManager = await prisma.user.upsert({
-    where: { email: "finance.manager@acme-india.local" },
-    create: {
-      email: "finance.manager@acme-india.local",
-      passwordHash,
-      status: UserStatus.ACTIVE,
-      firstName: "Rohan",
-      lastName: "Finance",
-      emailVerified: new Date(),
-    },
-    update: { passwordHash, status: UserStatus.ACTIVE },
-  });
-
-  const auditor = await prisma.user.upsert({
-    where: { email: "auditor@acme-india.local" },
-    create: {
-      email: "auditor@acme-india.local",
-      passwordHash,
-      status: UserStatus.ACTIVE,
-      firstName: "Meera",
-      lastName: "Audit",
-      emailVerified: new Date(),
-    },
-    update: { passwordHash, status: UserStatus.ACTIVE },
   });
 
   await prisma.organizationMember.upsert({
     where: {
       organizationId_userId: {
-        organizationId: demo.id,
+        organizationId,
         userId: admin.id,
       },
     },
     create: {
-      organizationId: demo.id,
+      organizationId,
       userId: admin.id,
       role: MemberRole.ADMIN,
       joinedAt: new Date(),
       isPrimary: true,
     },
-    update: {},
+    update: {
+      role: MemberRole.ADMIN,
+      isPrimary: true,
+      deletedAt: null,
+    },
   });
 
-  await Promise.all([
-    prisma.organizationMember.upsert({
-      where: {
-        organizationId_userId: {
-          organizationId: demo.id,
-          userId: cfo.id,
-        },
-      },
-      create: {
-        organizationId: demo.id,
-        userId: cfo.id,
-        role: MemberRole.MANAGER,
-        joinedAt: new Date(),
-      },
-      update: {},
-    }),
-    prisma.organizationMember.upsert({
-      where: {
-        organizationId_userId: {
-          organizationId: demo.id,
-          userId: financeManager.id,
-        },
-      },
-      create: {
-        organizationId: demo.id,
-        userId: financeManager.id,
-        role: MemberRole.MANAGER,
-        joinedAt: new Date(),
-      },
-      update: {},
-    }),
-    prisma.organizationMember.upsert({
-      where: {
-        organizationId_userId: {
-          organizationId: demo.id,
-          userId: auditor.id,
-        },
-      },
-      create: {
-        organizationId: demo.id,
-        userId: auditor.id,
-        role: MemberRole.VIEWER,
-        joinedAt: new Date(),
-      },
-      update: {},
-    }),
-  ]);
-
-  const orgAdminRole = await prisma.role.findFirstOrThrow({
-    where: { organizationId: demo.id, slug: ROLE_ORG_ADMIN },
+  const existingRole = await prisma.userRole.findFirst({
+    where: {
+      organizationId,
+      userId: admin.id,
+      roleId,
+      departmentId: null,
+      deletedAt: null,
+    },
+    select: { id: true },
   });
 
-  await assignRole(demo.id, admin.id, orgAdminRole.id);
+  if (!existingRole) {
+    await prisma.userRole.create({
+      data: { organizationId, userId: admin.id, roleId },
+    });
+  }
 
-  const [cfoRole, financeManagerRole, auditorRole] = await Promise.all([
-    prisma.role.findFirstOrThrow({
-      where: { organizationId: demo.id, slug: ROLE_CFO },
-    }),
-    prisma.role.findFirstOrThrow({
-      where: { organizationId: demo.id, slug: ROLE_FINANCE_MANAGER },
-    }),
-    prisma.role.findFirstOrThrow({
-      where: { organizationId: demo.id, slug: ROLE_AUDITOR },
-    }),
-  ]);
+  return admin;
+}
 
-  await Promise.all([
-    assignRole(demo.id, cfo.id, cfoRole.id),
-    assignRole(demo.id, financeManager.id, financeManagerRole.id),
-    assignRole(demo.id, auditor.id, auditorRole.id),
-  ]);
+function seedAdminPassword(): string {
+  const password = process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe@123";
+  if (process.env.NODE_ENV === "production" && password === "ChangeMe@123") {
+    throw new Error("SEED_ADMIN_PASSWORD must be set to a production-safe value.");
+  }
+  return password;
+}
 
-  const superRole = await prisma.role.findFirstOrThrow({
-    where: { organizationId: platform.id, slug: ROLE_SUPER_ADMIN },
-  });
+async function main() {
+  const startedAt = Date.now();
+  console.log("Seeding minimal production-safe demo data...");
 
-  await assignRole(platform.id, superAdmin.id, superRole.id);
+  const password = seedAdminPassword();
+  const [organization, passwordHash] = await Promise.all([
+    seedOrganization(),
+    hashPassword(password),
+    seedPermissions(),
+  ]).then(([org, hash]) => [org, hash] as const);
+  const orgAdminRole = await seedOrgAdminRole(organization.id);
+  const admin = await seedAdminUser(organization.id, orgAdminRole.id, passwordHash);
 
-  await seedWorkflows(prisma, demo.id, admin.id, financeManager.id);
-  await seedFinanceData(prisma, demo.id, admin.id, financeManager.id, cfo.id);
-  await seedConfigurationData(prisma, demo.id, admin.id, cfo.id, financeManager.id);
+  await seedWorkflows(prisma, organization.id, admin.id);
+  await seedFinanceData(prisma, organization.id, admin.id, admin.id, admin.id);
 
-  console.log("Seed complete.");
-  console.log("  Demo org slug: acme-india");
-  console.log("  Admin: admin@acme-india.local");
-  console.log("  CFO: cfo@acme-india.local");
-  console.log("  Finance manager: finance.manager@acme-india.local");
-  console.log("  Auditor: auditor@acme-india.local");
-  console.log("  Super admin: superadmin@platform.local");
-  console.log(`  Password: ${process.env.SEED_ADMIN_PASSWORD ?? "ChangeMe@123"}`);
+  const elapsedSeconds = ((Date.now() - startedAt) / 1000).toFixed(2);
+  console.log(`Seed complete in ${elapsedSeconds}s.`);
+  console.log(`  Demo org slug: ${DEMO_ORG_SLUG}`);
+  console.log(`  Admin: ${ADMIN_EMAIL}`);
+  console.log(
+    process.env.NODE_ENV === "production"
+      ? "  Password: configured via SEED_ADMIN_PASSWORD"
+      : `  Password: ${password}`,
+  );
 }
 
 main()
-  .catch((e) => {
-    console.error(e);
+  .catch((error) => {
+    console.error(error);
     process.exit(1);
   })
   .finally(async () => {
