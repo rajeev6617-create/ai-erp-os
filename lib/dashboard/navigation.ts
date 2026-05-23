@@ -103,7 +103,12 @@ export const mainNavigation: NavItem[] = [
     icon: Plug,
     roles: ["super-admin", "organization-admin"],
   },
-  { label: "Settings", href: "/dashboard/settings", icon: Settings },
+  {
+    label: "Settings",
+    href: "/dashboard/settings",
+    icon: Settings,
+    roles: ["super-admin", "organization-admin"],
+  },
 ];
 
 export function filterNavByRoles(

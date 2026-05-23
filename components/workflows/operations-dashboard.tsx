@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useMemo, useRef, useState } from "react";
-import { GitBranch, RefreshCw } from "lucide-react";
+import { FileCheck2, GitBranch, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { EmptyState } from "@/components/ui/empty-state";
 import { ApprovalQueueTabs } from "@/components/workflows/approval-queue-tabs";
 import { WorkflowCard } from "@/components/workflows/workflow-card";
 import { ApprovalActions } from "@/components/workflows/approval-actions";
@@ -137,9 +138,11 @@ export function OperationsDashboard({ initialData }: OperationsDashboardProps) {
           <ApprovalQueueTabs active={tab} counts={counts} onChange={setTab} />
           <div className="space-y-3">
             {queueItems.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-border p-8 text-center text-sm text-muted-foreground">
-                No {tab} approvals in this queue.
-              </p>
+              <EmptyState
+                icon={FileCheck2}
+                title={`No ${tab} approvals`}
+                description="This queue is clear for the selected status."
+              />
             ) : (
               queueItems.map((item) => (
                 <WorkflowCard
@@ -157,14 +160,22 @@ export function OperationsDashboard({ initialData }: OperationsDashboardProps) {
               Recent workflow executions
             </h2>
             <div className="space-y-3">
-              {data.executions.slice(0, 5).map((ex) => (
-                <WorkflowCard
-                  key={ex.id}
-                  item={ex}
-                  selected={matchesWorkflowItem(selected, ex)}
-                  onSelect={setSelected}
+              {data.executions.length === 0 ? (
+                <EmptyState
+                  icon={GitBranch}
+                  title="No workflow executions"
+                  description="New workflow runs will appear here after they are started."
                 />
-              ))}
+              ) : (
+                data.executions.slice(0, 5).map((ex) => (
+                  <WorkflowCard
+                    key={ex.id}
+                    item={ex}
+                    selected={matchesWorkflowItem(selected, ex)}
+                    onSelect={setSelected}
+                  />
+                ))
+              )}
             </div>
           </div>
         </section>

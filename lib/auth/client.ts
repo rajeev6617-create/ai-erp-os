@@ -6,6 +6,9 @@ export interface ApiErrorPayload {
   message: string;
   code: string;
   details?: unknown;
+  status?: number;
+  requestId?: string;
+  retryAfter?: number;
 }
 
 export interface ApiEnvelope<T> {
@@ -52,6 +55,20 @@ export interface CurrentUserResponse {
   isSuperAdmin: boolean;
 }
 
+export class ApiClientError extends Error {
+  constructor(
+    message: string,
+    public readonly code: string,
+    public readonly status?: number,
+    public readonly details?: unknown,
+    public readonly requestId?: string,
+    public readonly retryAfter?: number,
+  ) {
+    super(message);
+    this.name = "ApiClientError";
+  }
+}
+
 export function getAccessToken(): string | null {
   if (typeof window === "undefined") return null;
   return localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY);
@@ -66,18 +83,95 @@ export function clearAccessToken(): void {
   localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
 }
 
-async function readEnvelope<T>(response: Response): Promise<ApiEnvelope<T>> {
-  try {
-    return (await response.json()) as ApiEnvelope<T>;
-  } catch {
-    return {
-      success: false,
-      error: {
-        message: "Unexpected response from authentication service",
-        code: "INVALID_RESPONSE",
-      },
-    };
+function apiErrorEnvelope<T>(error: ApiErrorPayload): ApiEnvelope<T> {
+  return {
+    success: false,
+    error,
+  };
+}
+
+function networkErrorEnvelope<T>(error: unknown): ApiEnvelope<T> {
+  if (error instanceof DOMException && error.name === "AbortError") {
+    return apiErrorEnvelope<T>({
+      message: "The request timed out. Please try again.",
+      code: "REQUEST_ABORTED",
+    });
   }
+
+  return apiErrorEnvelope<T>({
+    message: "Network request failed. Please check your connection.",
+    code: "NETWORK_ERROR",
+  });
+}
+
+async function readEnvelope<T>(response: Response): Promise<ApiEnvelope<T>> {
+  const requestId = response.headers.get("x-request-id") ?? undefined;
+  const retryAfterHeader = response.headers.get("retry-after");
+  const retryAfter = retryAfterHeader ? Number(retryAfterHeader) : undefined;
+
+  try {
+    const envelope = (await response.json()) as ApiEnvelope<T>;
+    if (envelope.success) {
+      return envelope;
+    }
+
+    return apiErrorEnvelope<T>({
+      message:
+        envelope.error?.message ??
+        `Request failed with status ${response.status}`,
+      code: envelope.error?.code ?? "REQUEST_FAILED",
+      details: envelope.error?.details,
+      status: response.status,
+      requestId,
+      retryAfter: Number.isFinite(retryAfter) ? retryAfter : undefined,
+    });
+  } catch {
+    return apiErrorEnvelope<T>({
+      message: response.ok
+        ? "Unexpected response from API service"
+        : `Request failed with status ${response.status}`,
+      code: response.ok ? "INVALID_RESPONSE" : "REQUEST_FAILED",
+      status: response.status,
+      requestId,
+      retryAfter: Number.isFinite(retryAfter) ? retryAfter : undefined,
+    });
+  }
+}
+
+function createHeaders(options: RequestInit = {}): Headers {
+  const headers = new Headers(options.headers);
+  const hasFormBody = options.body instanceof FormData;
+  if (!hasFormBody && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
+  }
+
+  const token = getAccessToken();
+  if (token) {
+    headers.set("Authorization", `Bearer ${token}`);
+  }
+
+  return headers;
+}
+
+async function fetchWithAuth(
+  path: string,
+  options: RequestInit = {},
+  retryOnUnauthorized = true,
+): Promise<Response> {
+  const response = await fetch(path, {
+    ...options,
+    credentials: "include",
+    headers: createHeaders(options),
+  });
+
+  if (response.status === 401 && retryOnUnauthorized) {
+    const refreshedToken = await refreshAccessToken();
+    if (refreshedToken) {
+      return fetchWithAuth(path, options, false);
+    }
+  }
+
+  return response;
 }
 
 export async function loginWithPassword(input: {
@@ -86,12 +180,17 @@ export async function loginWithPassword(input: {
   organizationSlug?: string;
   mfaCode?: string;
 }): Promise<ApiEnvelope<LoginResponse>> {
-  const response = await fetch("/api/auth/login", {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
+  let response: Response;
+  try {
+    response = await fetch("/api/auth/login", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(input),
+    });
+  } catch (error) {
+    return networkErrorEnvelope<LoginResponse>(error);
+  }
   const envelope = await readEnvelope<LoginResponse>(response);
 
   if (envelope.success && envelope.data?.accessToken) {
@@ -102,12 +201,18 @@ export async function loginWithPassword(input: {
 }
 
 export async function refreshAccessToken(): Promise<string | null> {
-  const response = await fetch("/api/auth/refresh", {
-    method: "POST",
-    credentials: "include",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({}),
-  });
+  let response: Response;
+  try {
+    response = await fetch("/api/auth/refresh", {
+      method: "POST",
+      credentials: "include",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({}),
+    });
+  } catch {
+    clearAccessToken();
+    return null;
+  }
   const envelope = await readEnvelope<RefreshResponse>(response);
 
   if (!envelope.success || !envelope.data?.accessToken) {
@@ -124,31 +229,66 @@ export async function authenticatedFetch<T>(
   options: RequestInit = {},
   retryOnUnauthorized = true,
 ): Promise<ApiEnvelope<T>> {
-  const headers = new Headers(options.headers);
-  const hasFormBody = options.body instanceof FormData;
-  if (!hasFormBody && !headers.has("Content-Type")) {
-    headers.set("Content-Type", "application/json");
-  }
-
-  const token = getAccessToken();
-  if (token) {
-    headers.set("Authorization", `Bearer ${token}`);
-  }
-
-  const response = await fetch(path, {
-    ...options,
-    credentials: "include",
-    headers,
-  });
-
-  if (response.status === 401 && retryOnUnauthorized) {
-    const refreshedToken = await refreshAccessToken();
-    if (refreshedToken) {
-      return authenticatedFetch<T>(path, options, false);
-    }
+  let response: Response;
+  try {
+    response = await fetchWithAuth(path, options, retryOnUnauthorized);
+  } catch (error) {
+    return networkErrorEnvelope<T>(error);
   }
 
   return readEnvelope<T>(response);
+}
+
+export async function downloadAuthenticatedFile(
+  path: string,
+  options: RequestInit = {},
+): Promise<ApiEnvelope<{ blob: Blob; fileName: string }>> {
+  let response: Response;
+  try {
+    response = await fetchWithAuth(path, options);
+  } catch (error) {
+    return networkErrorEnvelope<{ blob: Blob; fileName: string }>(error);
+  }
+
+  if (!response.ok) {
+    return readEnvelope<{ blob: Blob; fileName: string }>(response);
+  }
+
+  return {
+    success: true,
+    data: {
+      blob: await response.blob(),
+      fileName:
+        fileNameFromDisposition(response.headers.get("Content-Disposition")) ??
+        "ai-erp-export",
+    },
+  };
+}
+
+export function getApiErrorMessage(
+  envelope: ApiEnvelope<unknown>,
+  fallback = "Something went wrong. Please try again.",
+): string {
+  if (envelope.success) return fallback;
+  if (envelope.error?.code === "RATE_LIMITED" && envelope.error.retryAfter) {
+    return `Too many requests. Try again in ${envelope.error.retryAfter} seconds.`;
+  }
+  return envelope.error?.message ?? fallback;
+}
+
+export function toApiClientError(
+  envelope: ApiEnvelope<unknown>,
+  fallback = "API request failed.",
+): ApiClientError {
+  const error = envelope.error;
+  return new ApiClientError(
+    error?.message ?? fallback,
+    error?.code ?? "REQUEST_FAILED",
+    error?.status,
+    error?.details,
+    error?.requestId,
+    error?.retryAfter,
+  );
 }
 
 export async function getCurrentUser(): Promise<ApiEnvelope<CurrentUserResponse>> {
@@ -161,4 +301,10 @@ export async function logoutUser(): Promise<void> {
   } finally {
     clearAccessToken();
   }
+}
+
+function fileNameFromDisposition(value: string | null): string | null {
+  if (!value) return null;
+  const match = /filename="([^"]+)"/.exec(value);
+  return match?.[1] ?? null;
 }

@@ -4,13 +4,15 @@ import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Bell, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { apiFetch } from "@/lib/api/client";
+import { useToast } from "@/components/providers/toast-provider";
+import { apiFetch, getApiErrorMessage } from "@/lib/api/client";
 import { cn } from "@/lib/utils/cn";
 import type { NotificationCenterData } from "@/lib/notifications/queries";
 
 export function NotificationCenter() {
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { showToast } = useToast();
   const [data, setData] = useState<NotificationCenterData>({
     unreadCount: 0,
     items: [],
@@ -22,8 +24,13 @@ export function NotificationCenter() {
     setLoading(false);
     if (res.success && res.data) {
       setData(res.data);
+      return;
     }
-  }, []);
+    showToast({
+      variant: "error",
+      message: getApiErrorMessage(res, "Unable to load notifications."),
+    });
+  }, [showToast]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -39,7 +46,13 @@ export function NotificationCenter() {
     });
     if (res.success) {
       await load();
+      showToast({ variant: "success", message: "Notifications marked read." });
+      return;
     }
+    showToast({
+      variant: "error",
+      message: getApiErrorMessage(res, "Unable to mark notifications read."),
+    });
   }
 
   function toggleOpen() {

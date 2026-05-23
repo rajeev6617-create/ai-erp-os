@@ -1,32 +1,14 @@
 import { cache } from "react";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-import {
-  ROLE_AI_AGENT,
-  ROLE_AUDITOR,
-  ROLE_CFO,
-  ROLE_EMPLOYEE,
-  ROLE_FINANCE_MANAGER,
-  ROLE_MANAGER,
-  ROLE_ORG_ADMIN,
-  ROLE_SUPER_ADMIN,
-  type SystemRoleSlug,
-} from "@/lib/auth/constants";
+import type { SystemRoleSlug } from "@/lib/auth/constants";
 import { ACCESS_TOKEN_COOKIE } from "@/lib/auth/cookie-names";
 import { buildAuthContext } from "@/lib/auth/service";
 import { hasAnyRole } from "@/lib/auth/rbac";
 import type { AuthContext } from "@/lib/auth/types";
+import { DASHBOARD_ACCESS_ROLES } from "@/lib/auth/route-protection";
 
-export const DASHBOARD_ACCESS_ROLES = [
-  ROLE_SUPER_ADMIN,
-  ROLE_ORG_ADMIN,
-  ROLE_MANAGER,
-  ROLE_CFO,
-  ROLE_FINANCE_MANAGER,
-  ROLE_AUDITOR,
-  ROLE_EMPLOYEE,
-  ROLE_AI_AGENT,
-] as const satisfies readonly SystemRoleSlug[];
+export { DASHBOARD_ACCESS_ROLES } from "@/lib/auth/route-protection";
 
 export const getServerAuth = cache(async (): Promise<AuthContext | null> => {
   const store = await cookies();

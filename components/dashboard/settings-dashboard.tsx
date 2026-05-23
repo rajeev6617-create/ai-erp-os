@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Bell,
   GitBranch,
@@ -19,13 +19,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { EmptyState } from "@/components/ui/empty-state";
 import { StatCard } from "@/components/ui/stat-card";
-import { apiFetch } from "@/lib/api/client";
+import { useToast } from "@/components/providers/toast-provider";
+import { apiFetch, getApiErrorMessage } from "@/lib/api/client";
 import type { ConfigurationDashboardData, ConfigurationMutationInput } from "@/lib/configuration/engine";
-
-type ToastState = {
-  type: "success" | "error";
-  message: string;
-} | null;
 
 const eventTypes = ["approval.pending", "approval.escalated", "report.ready"] as const;
 const channels = ["IN_APP", "EMAIL", "SLACK"] as const;
@@ -85,13 +81,7 @@ export function SettingsDashboard({ data }: { data: ConfigurationDashboardData }
       ),
   );
   const [loading, setLoading] = useState<string | null>(null);
-  const [toast, setToast] = useState<ToastState>(null);
-
-  useEffect(() => {
-    if (!toast) return;
-    const timeout = window.setTimeout(() => setToast(null), 3500);
-    return () => window.clearTimeout(timeout);
-  }, [toast]);
+  const { showToast } = useToast();
 
   const selectedWorkflowName = useMemo(
     () => data.workflows.find((workflow) => workflow.id === workflowForm.workflowId)?.name ?? "Workflow",
@@ -100,7 +90,6 @@ export function SettingsDashboard({ data }: { data: ConfigurationDashboardData }
 
   async function save(key: string, payload: ConfigurationMutationInput) {
     setLoading(key);
-    setToast(null);
     const result = await apiFetch<unknown>("/api/settings/configuration", {
       method: "PATCH",
       body: JSON.stringify(payload),
@@ -108,14 +97,14 @@ export function SettingsDashboard({ data }: { data: ConfigurationDashboardData }
     setLoading(null);
 
     if (!result.success) {
-      setToast({
-        type: "error",
-        message: result.error?.message ?? "Unable to save configuration.",
+      showToast({
+        variant: "error",
+        message: getApiErrorMessage(result, "Unable to save configuration."),
       });
       return;
     }
 
-    setToast({ type: "success", message: "Configuration saved." });
+    showToast({ variant: "success", message: "Configuration saved." });
   }
 
   return (
@@ -659,7 +648,6 @@ export function SettingsDashboard({ data }: { data: ConfigurationDashboardData }
         </SettingsCard>
       </section>
 
-      <ActionToast toast={toast} />
     </div>
   );
 }
@@ -833,23 +821,6 @@ function ListPreview({
           </div>
         </div>
       ))}
-    </div>
-  );
-}
-
-function ActionToast({ toast }: { toast: ToastState }) {
-  if (!toast) return null;
-
-  return (
-    <div
-      role={toast.type === "error" ? "alert" : "status"}
-      className={`fixed bottom-4 right-4 z-50 max-w-sm rounded-lg border px-4 py-3 text-sm font-medium shadow-lg ${
-        toast.type === "success"
-          ? "border-success/30 bg-success/10 text-success"
-          : "border-danger/30 bg-danger/10 text-danger"
-      }`}
-    >
-      {toast.message}
     </div>
   );
 }

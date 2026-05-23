@@ -12,7 +12,8 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { apiFetch } from "@/lib/api/client";
+import { useToast } from "@/components/providers/toast-provider";
+import { apiFetch, getApiErrorMessage } from "@/lib/api/client";
 import type {
   ApprovalActionResult,
   ApprovalActionType,
@@ -20,11 +21,6 @@ import type {
   WorkflowCardData,
   WorkflowTimelineEvent,
 } from "@/lib/workflows/types";
-
-type ToastState = {
-  type: "success" | "error";
-  message: string;
-} | null;
 
 type AuditErrorState = {
   approvalId: string;
@@ -51,15 +47,9 @@ export function ApprovalActions({
   const [comment, setComment] = useState("");
   const [loading, setLoading] = useState<ApprovalActionType | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [toast, setToast] = useState<ToastState>(null);
   const [auditHistory, setAuditHistory] = useState<ApprovalAuditHistory | null>(null);
   const [auditError, setAuditError] = useState<AuditErrorState>(null);
-
-  useEffect(() => {
-    if (!toast) return;
-    const timer = window.setTimeout(() => setToast(null), 3500);
-    return () => window.clearTimeout(timer);
-  }, [toast]);
+  const { showToast } = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -108,19 +98,16 @@ export function ApprovalActions({
 
   if (!item?.approvalId) {
     return (
-      <>
-        <ApprovalToast toast={toast} />
-        <Card>
-          <CardHeader>
-            <CardTitle>Approval actions</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground">
-              Select a pending approval to approve, reject, escalate, or request clarification.
-            </p>
-          </CardContent>
-        </Card>
-      </>
+      <Card>
+        <CardHeader>
+          <CardTitle>Approval actions</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <p className="text-sm text-muted-foreground">
+            Select a pending approval to approve, reject, escalate, or request clarification.
+          </p>
+        </CardContent>
+      </Card>
     );
   }
 
@@ -154,14 +141,14 @@ export function ApprovalActions({
 
       if (!res.success || !res.data) {
         onActionError?.();
-        const message = res.error?.message ?? "Action failed";
+        const message = getApiErrorMessage(res, "Action failed");
         setError(message);
-        setToast({ type: "error", message });
+        showToast({ variant: "error", message });
         return;
       }
 
       setComment("");
-      setToast({ type: "success", message: res.data.message });
+      showToast({ variant: "success", message: res.data.message });
       const result = res.data;
       if (result.timelineEvent) {
         setAuditHistory((current) =>
@@ -179,16 +166,14 @@ export function ApprovalActions({
       onActionError?.();
       const message = "Action failed. Please try again.";
       setError(message);
-      setToast({ type: "error", message });
+      showToast({ variant: "error", message });
     } finally {
       setLoading(null);
     }
   }
 
   return (
-    <>
-      <ApprovalToast toast={toast} />
-      <Card>
+    <Card>
         <CardHeader>
           <CardTitle className="text-base">Approval actions</CardTitle>
           <p className="line-clamp-1 text-xs text-muted-foreground">{item.title}</p>
@@ -353,8 +338,7 @@ export function ApprovalActions({
             </div>
           ) : null}
         </CardContent>
-      </Card>
-    </>
+    </Card>
   );
 }
 
@@ -375,24 +359,6 @@ function prependTimelineEvent(
   event: WorkflowTimelineEvent,
 ): WorkflowTimelineEvent[] {
   return [event, ...timeline.filter((current) => current.id !== event.id)].slice(0, 20);
-}
-
-function ApprovalToast({ toast }: { toast: ToastState }) {
-  if (!toast) return null;
-
-  return (
-    <div
-      aria-live="polite"
-      role={toast.type === "error" ? "alert" : "status"}
-      className={`fixed bottom-4 right-4 z-50 max-w-sm rounded-lg border px-4 py-3 text-sm shadow-lg ${
-        toast.type === "success"
-          ? "border-success/30 bg-card text-success"
-          : "border-danger/30 bg-card text-danger"
-      }`}
-    >
-      {toast.message}
-    </div>
-  );
 }
 
 function formatTimestamp(iso: string): string {

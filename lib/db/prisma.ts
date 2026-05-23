@@ -34,3 +34,36 @@ export const prisma = globalForPrisma.prisma ?? createPrismaClient();
 if (process.env.NODE_ENV !== "production") {
   globalForPrisma.prisma = prisma;
 }
+
+export async function checkDatabaseConnection(timeoutMs = readDbHealthTimeoutMs()): Promise<{
+  ok: boolean;
+  latencyMs: number;
+  checkedAt: string;
+}> {
+  const startedAt = Date.now();
+  try {
+    await Promise.race([
+      prisma.$queryRaw`SELECT 1`,
+      new Promise((_, reject) => {
+        setTimeout(() => reject(new Error("Database health check timed out")), timeoutMs);
+      }),
+    ]);
+    return {
+      ok: true,
+      latencyMs: Date.now() - startedAt,
+      checkedAt: new Date().toISOString(),
+    };
+  } catch (error) {
+    console.error("[db-health]", error);
+    return {
+      ok: false,
+      latencyMs: Date.now() - startedAt,
+      checkedAt: new Date().toISOString(),
+    };
+  }
+}
+
+function readDbHealthTimeoutMs(): number {
+  const parsed = Number(process.env.DB_HEALTHCHECK_TIMEOUT_MS ?? 3000);
+  return Number.isInteger(parsed) && parsed >= 500 && parsed <= 30_000 ? parsed : 3000;
+}

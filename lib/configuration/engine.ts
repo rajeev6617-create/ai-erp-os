@@ -9,15 +9,11 @@ import { ConflictError, NotFoundError } from "@/lib/api/errors";
 import {
   ACTIONS,
   RESOURCES,
-  ROLE_ORG_ADMIN,
-  ROLE_SUPER_ADMIN,
   type SystemRoleSlug,
 } from "@/lib/auth/constants";
+import { ADMIN_DASHBOARD_ROLES } from "@/lib/auth/route-protection";
 
-export const ADMIN_SETTINGS_ROLES = [
-  ROLE_SUPER_ADMIN,
-  ROLE_ORG_ADMIN,
-] as const satisfies readonly SystemRoleSlug[];
+export const ADMIN_SETTINGS_ROLES = ADMIN_DASHBOARD_ROLES satisfies readonly SystemRoleSlug[];
 
 const settingValueSchema = z.union([
   z.string(),

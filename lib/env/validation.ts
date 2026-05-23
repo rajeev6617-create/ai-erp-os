@@ -30,6 +30,15 @@ const placeholderPatterns = [
   "secret-min-32-chars",
 ] as const;
 
+const forbiddenPublicEnvFragments = [
+  "SECRET",
+  "TOKEN",
+  "PASSWORD",
+  "DATABASE",
+  "PRIVATE",
+  "KEY",
+] as const;
+
 export function validateEnvironment(params: {
   env?: EnvMap;
   profile?: EnvironmentProfile;
@@ -39,13 +48,18 @@ export function validateEnvironment(params: {
   const checks: EnvironmentCheck[] = [];
 
   checkRequired(checks, env, "DATABASE_URL");
-  checkPostgresUrl(checks, env.DATABASE_URL);
+  checkPostgresUrl(checks, env.DATABASE_URL, profile);
   checkRequired(checks, env, "PLATFORM_ORGANIZATION_SLUG");
   checkNumberRange(checks, env, "DATABASE_POOL_MAX", 1, 50, false);
+  checkNumberRange(checks, env, "DB_HEALTHCHECK_TIMEOUT_MS", 500, 30_000, false);
   checkNumberRange(checks, env, "BCRYPT_ROUNDS", profile === "production" ? 12 : 10, 15, false);
   checkNumberRange(checks, env, "MAX_FAILED_LOGINS", 3, 20, false);
   checkNumberRange(checks, env, "LOCKOUT_WINDOW_MINUTES", 5, 240, false);
   checkNumberRange(checks, env, "LOCKOUT_DURATION_MINUTES", 5, 1_440, false);
+  checkNumberRange(checks, env, "API_RATE_LIMIT_READS_PER_MINUTE", 60, 2_000, false);
+  checkNumberRange(checks, env, "API_RATE_LIMIT_WRITES_PER_MINUTE", 20, 600, false);
+  checkNumberRange(checks, env, "API_RATE_LIMIT_AUTH_PER_MINUTE", 5, 120, false);
+  checkPublicEnvironmentExposure(checks, env, profile);
 
   for (const key of requiredSecrets) {
     checkRequired(checks, env, key);
@@ -61,6 +75,19 @@ export function validateEnvironment(params: {
       key: "JWT_REFRESH_SECRET",
       status: profile === "production" ? "fail" : "warn",
       message: "Refresh token secret should be different from the access token secret.",
+    });
+  }
+
+  if (
+    env.JWT_ACCESS_SECRET &&
+    env.JWT_MFA_CHALLENGE_SECRET &&
+    env.JWT_ACCESS_SECRET === env.JWT_MFA_CHALLENGE_SECRET &&
+    profile === "production"
+  ) {
+    checks.push({
+      key: "JWT_MFA_CHALLENGE_SECRET",
+      status: "fail",
+      message: "MFA challenge secret must be unique in production.",
     });
   }
 
@@ -93,6 +120,18 @@ export function validateEnvironment(params: {
       key: "NEXT_PUBLIC_AI_ERP_DEMO_MODE",
       status: "fail",
       message: "Public demo banner flag must be disabled for production deployments.",
+    });
+  }
+
+  if (
+    profile === "production" &&
+    env.NEXT_PUBLIC_AI_ERP_ENV &&
+    env.NEXT_PUBLIC_AI_ERP_ENV !== "production"
+  ) {
+    checks.push({
+      key: "NEXT_PUBLIC_AI_ERP_ENV",
+      status: "fail",
+      message: "Public environment label must be production for production deployments.",
     });
   }
 
@@ -146,17 +185,29 @@ function checkRequired(checks: EnvironmentCheck[], env: EnvMap, key: string) {
   });
 }
 
-function checkPostgresUrl(checks: EnvironmentCheck[], value: string | undefined) {
+function checkPostgresUrl(
+  checks: EnvironmentCheck[],
+  value: string | undefined,
+  profile: EnvironmentProfile,
+) {
   if (!value) return;
 
   try {
     const url = new URL(value);
     const protocolOk = url.protocol === "postgresql:" || url.protocol === "postgres:";
+    const sslMode = url.searchParams.get("sslmode");
     checks.push({
       key: "DATABASE_URL",
       status: protocolOk ? "pass" : "fail",
       message: protocolOk ? "PostgreSQL connection URL detected." : "DATABASE_URL must be PostgreSQL.",
     });
+    if (protocolOk && !sslMode && profile === "production") {
+      checks.push({
+        key: "DATABASE_URL",
+        status: "warn",
+        message: "Consider configuring sslmode for production database transport.",
+      });
+    }
   } catch {
     checks.push({
       key: "DATABASE_URL",
@@ -196,6 +247,26 @@ function checkSecretStrength(
     status: "pass",
     message: "Secret length and value look deployable.",
   });
+}
+
+function checkPublicEnvironmentExposure(
+  checks: EnvironmentCheck[],
+  env: EnvMap,
+  profile: EnvironmentProfile,
+) {
+  for (const [key, value] of Object.entries(env)) {
+    if (!key.startsWith("NEXT_PUBLIC_") || !value) continue;
+    const exposesSensitiveName = forbiddenPublicEnvFragments.some((fragment) =>
+      key.includes(fragment),
+    );
+    if (!exposesSensitiveName) continue;
+
+    checks.push({
+      key,
+      status: profile === "production" ? "fail" : "warn",
+      message: "Public environment variables are bundled into browser code; do not expose secrets.",
+    });
+  }
 }
 
 function checkNumberRange(
