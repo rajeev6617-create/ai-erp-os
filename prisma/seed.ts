@@ -1,20 +1,14 @@
 import "dotenv/config";
+import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import {
   MemberRole,
-  PermissionScope,
   PrismaClient,
   TenantStatus,
   UserStatus,
 } from "../app/generated/prisma/client";
-import {
-  ACTIONS,
-  RESOURCES,
-  ROLE_ORG_ADMIN,
-  permissionKey,
-} from "../lib/auth/constants";
-import { hashPassword } from "../lib/auth/password";
+import { ROLE_ORG_ADMIN } from "../lib/auth/constants";
 import { seedFinanceData } from "./seed-finance";
 import { seedWorkflows } from "./seed-workflows";
 
@@ -27,33 +21,6 @@ const prisma = new PrismaClient({ adapter: new PrismaPg(pool) });
 const DEMO_ORG_SLUG = "acme-india";
 const DEMO_ORG_NAME = "Acme India Pvt Ltd";
 const ADMIN_EMAIL = "admin@acme-india.local";
-
-const ORG_ADMIN_PERMISSION_KEYS = [
-  "organization:manage",
-  "user:manage",
-  "role:manage",
-  "department:manage",
-  "workflow:manage",
-  "integration:manage",
-  "audit:read",
-] as const;
-
-async function seedPermissions() {
-  const permissions = RESOURCES.flatMap((resource) =>
-    ACTIONS.map((action) => ({
-      resource,
-      action,
-      scope: PermissionScope.ORGANIZATION,
-      description: `${action} ${resource}`,
-      isSystem: true,
-    })),
-  );
-
-  await prisma.permission.createMany({
-    data: permissions,
-    skipDuplicates: true,
-  });
-}
 
 async function seedOrganization() {
   return prisma.organization.upsert({
@@ -85,7 +52,7 @@ async function seedOrganization() {
 }
 
 async function seedOrgAdminRole(organizationId: string) {
-  const role = await prisma.role.upsert({
+  return prisma.role.upsert({
     where: { organizationId_slug: { organizationId, slug: ROLE_ORG_ADMIN } },
     create: {
       organizationId,
@@ -101,33 +68,6 @@ async function seedOrgAdminRole(organizationId: string) {
       deletedAt: null,
     },
   });
-
-  const allPermissions = await prisma.permission.findMany({
-    select: { id: true, resource: true, action: true },
-  });
-  const permissionIds = new Set<string>();
-  const requestedKeys = new Set<string>(ORG_ADMIN_PERMISSION_KEYS);
-
-  for (const permission of allPermissions) {
-    if (requestedKeys.has(permissionKey(permission.resource, permission.action))) {
-      permissionIds.add(permission.id);
-      continue;
-    }
-
-    if (requestedKeys.has(permissionKey(permission.resource, "manage"))) {
-      permissionIds.add(permission.id);
-    }
-  }
-
-  await prisma.rolePermission.createMany({
-    data: [...permissionIds].map((permissionId) => ({
-      roleId: role.id,
-      permissionId,
-    })),
-    skipDuplicates: true,
-  });
-
-  return role;
 }
 
 async function seedAdminUser(
@@ -204,6 +144,19 @@ function seedAdminPassword(): string {
   return password;
 }
 
+async function hashSeedAdminPassword(password: string): Promise<string> {
+  if (process.env.SEED_ADMIN_PASSWORD_HASH) {
+    return process.env.SEED_ADMIN_PASSWORD_HASH;
+  }
+
+  const rounds = Number(process.env.SEED_BCRYPT_ROUNDS ?? 10);
+  if (!Number.isInteger(rounds) || rounds < 10) {
+    throw new Error("SEED_BCRYPT_ROUNDS must be an integer greater than or equal to 10.");
+  }
+
+  return bcrypt.hash(password, rounds);
+}
+
 async function main() {
   const startedAt = Date.now();
   console.log("Seeding minimal production-safe demo data...");
@@ -211,9 +164,8 @@ async function main() {
   const password = seedAdminPassword();
   const [organization, passwordHash] = await Promise.all([
     seedOrganization(),
-    hashPassword(password),
-    seedPermissions(),
-  ]).then(([org, hash]) => [org, hash] as const);
+    hashSeedAdminPassword(password),
+  ]);
   const orgAdminRole = await seedOrgAdminRole(organization.id);
   const admin = await seedAdminUser(organization.id, orgAdminRole.id, passwordHash);
 
