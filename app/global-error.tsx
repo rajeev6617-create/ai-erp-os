@@ -26,7 +26,7 @@ export default function GlobalError({
                 <TriangleAlert className="h-5 w-5" />
               </div>
               <div className="min-w-0">
-                <h1 className="text-lg font-semibold">AI ERP OS could not recover</h1>
+                <h1 className="text-lg font-semibold">ASTRA could not recover</h1>
                 <p className="mt-2 text-sm text-muted-foreground">
                   A global runtime error interrupted the app shell. Retry the request, or share the digest with support.
                 </p>

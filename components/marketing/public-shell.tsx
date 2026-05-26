@@ -9,7 +9,7 @@ export function PublicHeader() {
           <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
             <Bot className="h-4 w-4" />
           </span>
-          <span className="font-semibold tracking-tight">AI ERP OS</span>
+          <span className="font-semibold tracking-tight">ASTRA</span>
         </Link>
         <nav className="hidden items-center gap-6 text-sm text-muted-foreground md:flex">
           <Link href="/#features" className="hover:text-foreground">
@@ -53,10 +53,10 @@ export function PublicFooter() {
             <span className="flex h-9 w-9 items-center justify-center rounded-lg bg-primary text-primary-foreground">
               <Bot className="h-4 w-4" />
             </span>
-            <span className="font-semibold tracking-tight">AI ERP OS</span>
+            <span className="font-semibold tracking-tight">ASTRA</span>
           </div>
           <p className="mt-3 max-w-md text-sm text-muted-foreground">
-            AI-powered workflow and finance operating system for growing Indian businesses.
+            The AI operating system for modern enterprises.
           </p>
           <div className="mt-4 inline-flex items-center gap-2 rounded-lg border border-border px-3 py-2 text-xs text-muted-foreground">
             <ShieldCheck className="h-4 w-4 text-success" />
@@ -83,7 +83,7 @@ export function PublicFooter() {
         </div>
       </div>
       <div className="border-t border-border px-4 py-4 text-center text-xs text-muted-foreground">
-        © {new Date().getFullYear()} AI ERP OS. Enterprise SaaS for workflow, finance, and compliance operations.
+        © {new Date().getFullYear()} ASTRA. Enterprise SaaS for workflow, finance, and compliance operations.
       </div>
     </footer>
   );

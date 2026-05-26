@@ -27,7 +27,7 @@ export async function buildExcelMisReport(params: {
   ];
 
   return {
-    fileName: `ai-erp-mis-${params.scope}-${dateStamp()}.xls`,
+    fileName: `astra-mis-${params.scope}-${dateStamp()}.xls`,
     contentType: "application/vnd.ms-excel; charset=utf-8",
     body: excelWorkbook(worksheets),
   };
@@ -43,7 +43,7 @@ export async function buildPdfSummaryPlaceholder(params: {
     params.scope === "workflows" ? null : getFinanceDashboard(params.organizationId),
   ]);
   const lines = [
-    "AI ERP OS Summary Report",
+    "ASTRA Summary Report",
     `Organization: ${params.organizationName}`,
     `Scope: ${params.scope}`,
     `Generated: ${new Date().toISOString()}`,
@@ -63,7 +63,7 @@ export async function buildPdfSummaryPlaceholder(params: {
   ].filter((line): line is string => Boolean(line));
 
   return {
-    fileName: `ai-erp-summary-${params.scope}-${dateStamp()}.pdf`,
+    fileName: `astra-summary-${params.scope}-${dateStamp()}.pdf`,
     contentType: "application/pdf",
     body: minimalPdf(lines),
   };
@@ -78,7 +78,7 @@ function summaryWorksheet(
   return {
     name: "MIS Summary",
     rows: [
-      ["AI ERP OS MIS Report"],
+      ["ASTRA MIS Report"],
       ["Organization", organizationName],
       ["Scope", scope],
       ["Generated At", new Date().toISOString()],

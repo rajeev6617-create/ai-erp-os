@@ -45,6 +45,18 @@ export const DASHBOARD_ROUTE_POLICIES = [
     description: "Finance command center",
   },
   {
+    prefix: "/dashboard/operations",
+    roles: [
+      ROLE_SUPER_ADMIN,
+      ROLE_ORG_ADMIN,
+      ROLE_MANAGER,
+      ROLE_CFO,
+      ROLE_FINANCE_MANAGER,
+      ROLE_AUDITOR,
+    ],
+    description: "Enterprise operations modules",
+  },
+  {
     prefix: "/dashboard/approvals",
     roles: [
       ROLE_SUPER_ADMIN,

@@ -1,0 +1,14 @@
+import { notFound } from "next/navigation";
+import { OperationModuleDashboard } from "@/components/operations/operation-module-dashboard";
+import { requireDashboardAuth } from "@/lib/auth/server";
+import { OPERATIONS_DASHBOARD_ROLES } from "@/lib/operations/access";
+import { getOperationModuleDashboard } from "@/lib/operations/data";
+
+export default async function R2rOperationsPage() {
+  const auth = await requireDashboardAuth(OPERATIONS_DASHBOARD_ROLES, "/dashboard");
+  const data = await getOperationModuleDashboard(auth.organization.id, "r2r");
+
+  if (!data) notFound();
+
+  return <OperationModuleDashboard data={data} />;
+}

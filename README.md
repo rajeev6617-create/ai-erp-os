@@ -1,4 +1,4 @@
-AI ERP OS is a multi-tenant Next.js enterprise dashboard with RBAC, workflow approvals, finance intelligence, reporting, and tenant configuration.
+ASTRA is the AI operating system for modern enterprises: a multi-tenant Next.js enterprise dashboard with RBAC, workflow approvals, finance intelligence, reporting, and tenant configuration.
 
 ## Getting Started
 

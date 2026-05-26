@@ -4,11 +4,11 @@ import { DemoRequestForm } from "@/components/marketing/demo-request-form";
 import { PublicPageShell } from "@/components/marketing/public-shell";
 
 export const metadata: Metadata = {
-  title: "Book Demo | AI ERP OS",
+  title: "Book Demo | ASTRA",
   description:
-    "Book an AI ERP OS demo for workflow automation, AI approvals, finance intelligence, compliance monitoring, and reporting.",
+    "Book an ASTRA demo for workflow automation, AI approvals, finance intelligence, compliance monitoring, and reporting.",
   keywords: [
-    "book AI ERP demo",
+    "book ASTRA demo",
     "workflow automation demo",
     "finance intelligence demo",
     "approval automation demo",

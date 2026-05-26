@@ -263,6 +263,37 @@ enum ActivityType {
   OTHER
 }
 
+enum OperationModuleCode {
+  P2P
+  OTC
+  R2R
+  USER_OPERATIONS
+}
+
+enum OperationStageStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  WAITING_APPROVAL
+  BLOCKED
+  COMPLETED
+}
+
+enum OperationRecordStatus {
+  OPEN
+  WAITING_APPROVAL
+  APPROVED
+  BLOCKED
+  COMPLETED
+  EXCEPTION
+}
+
+enum OperationRiskSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 // =============================================================================
 // TENANT & SAAS
 // =============================================================================
@@ -340,6 +371,13 @@ model Organization {
   userRoles                UserRole[]
   journalEntries           JournalEntry[]
   notificationPreferences  NotificationPreference[]
+  operationModules         OperationModule[]
+  operationWorkflowStages  OperationWorkflowStage[]
+  operationRecords         OperationRecord[]
+  operationApprovalFlows   OperationApprovalFlow[]
+  operationRiskAlerts      OperationRiskAlert[]
+  operationFinanceImpacts  OperationFinanceImpact[]
+  operationAuditEvents     OperationAuditEvent[]
 
   @@index([status, deletedAt])
   @@index([gstin])
@@ -995,7 +1033,7 @@ model OrganizationConfiguration {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
-  @@unique([organizationId, category, configKey])
+  @@unique([organizationId, category, configKey], map: "organization_configurations_organizationId_category_configKey_k")
   @@index([organizationId, category])
   @@index([updatedById, updatedAt])
   @@map("organization_configurations")
@@ -1097,8 +1135,205 @@ model CustomFieldDefinition {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
   @@unique([organizationId, entityType, fieldKey])
-  @@index([organizationId, entityType, isActive, deletedAt])
+  @@index([organizationId, entityType, isActive, deletedAt], map: "custom_fields_org_entity_active_deleted_idx")
   @@map("custom_field_definitions")
+}
+
+// =============================================================================
+// ENTERPRISE OPERATIONS MODULES
+// =============================================================================
+
+model OperationModule {
+  id             String              @id @default(cuid())
+  organizationId String
+  code           OperationModuleCode
+  name           String
+  description    String?
+  ownerRole      String?
+  financeCategory String?
+  metadata       Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization   Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  stages         OperationWorkflowStage[]
+  records        OperationRecord[]
+  approvalFlows  OperationApprovalFlow[]
+  riskAlerts     OperationRiskAlert[]
+  financeImpacts OperationFinanceImpact[]
+  auditEvents    OperationAuditEvent[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId, deletedAt])
+  @@map("operation_modules")
+}
+
+model OperationWorkflowStage {
+  id              String               @id @default(cuid())
+  organizationId  String
+  moduleId        String
+  stageKey        String
+  name            String
+  description     String?
+  sequence        Int
+  status          OperationStageStatus @default(NOT_STARTED)
+  slaHours        Int?
+  automationLevel String?
+  metadata        Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  module       OperationModule   @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  records      OperationRecord[]
+
+  @@unique([moduleId, stageKey])
+  @@index([organizationId, moduleId, sequence])
+  @@index([organizationId, status])
+  @@map("operation_workflow_stages")
+}
+
+model OperationRecord {
+  id             String                @id @default(cuid())
+  organizationId String
+  moduleId       String
+  stageId        String?
+  reference      String
+  title          String
+  description    String?
+  status         OperationRecordStatus @default(OPEN)
+  amount         Decimal?              @db.Decimal(18, 2)
+  currency       String                @default("INR") @db.Char(3)
+  counterparty   String?
+  ownerRole      String?
+  dueAt          DateTime?
+  completedAt    DateTime?
+  riskScore      Int                   @default(0)
+  metadata       Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization   Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  module         OperationModule           @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  stage          OperationWorkflowStage?    @relation(fields: [stageId], references: [id], onDelete: SetNull)
+  riskAlerts     OperationRiskAlert[]
+  financeImpacts OperationFinanceImpact[]
+  auditEvents    OperationAuditEvent[]
+
+  @@unique([organizationId, reference])
+  @@index([organizationId, moduleId, status, dueAt])
+  @@index([stageId, status])
+  @@map("operation_records")
+}
+
+model OperationApprovalFlow {
+  id              String       @id @default(cuid())
+  organizationId  String
+  moduleId        String
+  name            String
+  description     String?
+  trigger         String
+  sequence        Int
+  approverRole    String
+  approvalType    ApprovalType @default(SEQUENTIAL)
+  thresholdAmount Decimal?     @db.Decimal(18, 2)
+  isActive        Boolean      @default(true)
+  metadata        Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  module       OperationModule @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+
+  @@unique([moduleId, sequence])
+  @@unique([moduleId, name])
+  @@index([organizationId, moduleId, isActive])
+  @@map("operation_approval_flows")
+}
+
+model OperationRiskAlert {
+  id             String                @id @default(cuid())
+  organizationId String
+  moduleId       String
+  recordId       String?
+  sourceKey      String
+  title          String
+  description    String
+  severity       OperationRiskSeverity @default(MEDIUM)
+  status         String                @default("OPEN")
+  signalType     String
+  confidence     Decimal?              @db.Decimal(5, 2)
+  detectedAt     DateTime              @default(now())
+  resolvedAt     DateTime?
+  metadata       Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  module       OperationModule  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  record       OperationRecord? @relation(fields: [recordId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, sourceKey])
+  @@index([organizationId, moduleId, severity, status], map: "operation_risk_alerts_organizationId_moduleId_severity_status_i")
+  @@index([recordId, status])
+  @@map("operation_risk_alerts")
+}
+
+model OperationFinanceImpact {
+  id             String   @id @default(cuid())
+  organizationId String
+  moduleId       String
+  recordId       String?
+  sourceKey      String
+  impactType     String
+  title          String
+  amount         Decimal  @db.Decimal(18, 2)
+  currency       String   @default("INR") @db.Char(3)
+  direction      String
+  period         String?
+  recognizedAt   DateTime @default(now())
+  metadata       Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  module       OperationModule  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  record       OperationRecord? @relation(fields: [recordId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, sourceKey])
+  @@index([organizationId, moduleId, impactType], map: "operation_finance_impacts_organizationId_moduleId_impactType_id")
+  @@index([recordId])
+  @@map("operation_finance_impacts")
+}
+
+model OperationAuditEvent {
+  id             String        @id @default(cuid())
+  organizationId String
+  moduleId       String
+  recordId       String?
+  sourceKey      String
+  action         String
+  actor          String?
+  severity       AuditSeverity @default(INFO)
+  details        Json?
+
+  createdAt DateTime @default(now())
+
+  organization Organization     @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  module       OperationModule  @relation(fields: [moduleId], references: [id], onDelete: Cascade)
+  record       OperationRecord? @relation(fields: [recordId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, sourceKey])
+  @@index([organizationId, moduleId, createdAt])
+  @@index([recordId, createdAt])
+  @@map("operation_audit_events")
 }
 
 // =============================================================================
@@ -1165,6 +1400,7 @@ model UserSession {
   id               String    @id @default(cuid())
   userId           String
   organizationId   String?
+  tokenHash        String?   @unique
   accessTokenHash  String    @unique
   refreshTokenHash String    @unique
   ipAddress        String?   @db.VarChar(45)
@@ -1199,7 +1435,7 @@ model UserMfaFactor {
   metadata       Json?
 
   createdAt DateTime  @default(now())
-  updatedAt DateTime  @updatedAt
+  updatedAt DateTime  @default(now()) @updatedAt
   deletedAt DateTime?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)

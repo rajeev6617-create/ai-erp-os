@@ -18,11 +18,12 @@ import { PublicPageShell } from "@/components/marketing/public-shell";
 import { ProductPreview } from "@/components/marketing/product-preview";
 
 export const metadata: Metadata = {
-  title: "AI ERP OS | AI Workflow and Finance Operating System",
+  title: "ASTRA | The AI Operating System for Modern Enterprises",
   description:
-    "AI ERP OS is an AI-powered workflow and finance operating system for approvals, audit trails, GST-ready finance intelligence, compliance monitoring, and reporting.",
+    "ASTRA is the AI operating system for modern enterprises, unifying approvals, audit trails, finance intelligence, compliance monitoring, and reporting.",
   keywords: [
-    "AI ERP",
+    "ASTRA",
+    "AI operating system",
     "workflow automation",
     "finance automation",
     "AI approvals",
@@ -97,10 +98,10 @@ export default function HomePage() {
                 Workflow, finance, audit, and compliance in one operating layer
               </div>
               <h1 className="mt-6 text-5xl font-bold tracking-tight text-foreground sm:text-6xl lg:text-7xl">
-                AI ERP OS
+                ASTRA
               </h1>
               <p className="mt-6 max-w-2xl text-lg leading-8 text-muted-foreground sm:text-xl">
-                AI-powered workflow and finance operating system for teams that need approvals,
+                The AI operating system for modern enterprises that need approvals,
                 GST-ready finance intelligence, audit trails, reporting, and automation without
                 stitching together spreadsheets and chat threads.
               </p>
@@ -215,7 +216,7 @@ export default function HomePage() {
             <div className="flex flex-col gap-5 md:flex-row md:items-center md:justify-between">
               <div>
                 <h2 className="text-2xl font-semibold tracking-tight">
-                  Ready to pilot AI ERP OS with your finance and approval workflows?
+                  Ready to pilot ASTRA with your finance and approval workflows?
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground">
                   Book a guided demo and map your first approval, finance, reporting, and automation flows.

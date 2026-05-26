@@ -5,8 +5,8 @@ import { DASHBOARD_ACCESS_ROLES, getServerAuth } from "@/lib/auth/server";
 import { hasAnyRole } from "@/lib/auth/rbac";
 
 export const metadata: Metadata = {
-  title: "Sign In | AI ERP OS",
-  description: "Secure enterprise sign in for AI ERP OS",
+  title: "Sign In | ASTRA",
+  description: "Secure enterprise sign in for ASTRA.",
 };
 
 export default async function LoginPage() {

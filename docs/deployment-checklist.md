@@ -1,4 +1,4 @@
-# AI ERP OS Deployment Checklist
+# ASTRA Deployment Checklist
 
 Use this checklist before promoting a tenant build beyond local demo or sandbox environments.
 

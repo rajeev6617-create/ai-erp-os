@@ -32,6 +32,7 @@ export const RESOURCES = [
   "invoice",
   "payment",
   "expense",
+  "operation",
   "document",
   "compliance",
   "audit",

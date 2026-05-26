@@ -13,7 +13,7 @@ export const demoUsers: Record<SystemRoleSlug, DashboardUser> = {
     name: "Priya Sharma",
     email: "superadmin@platform.local",
     role: "super-admin",
-    organization: "AI ERP Platform",
+    organization: "ASTRA Platform",
     avatarInitials: "PS",
   },
   "organization-admin": {

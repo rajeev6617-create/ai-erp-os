@@ -11,7 +11,7 @@ export function ProductPreview({ compact = false }: { compact?: boolean }) {
     <div className="rounded-lg border border-border bg-card/95 p-3 shadow-xl shadow-slate-900/10 dark:shadow-black/30">
       <div className="flex items-center justify-between border-b border-border pb-3">
         <div>
-          <p className="text-xs text-muted-foreground">AI ERP OS</p>
+          <p className="text-xs text-muted-foreground">ASTRA</p>
           <p className="text-sm font-semibold">Finance command center</p>
         </div>
         <Badge variant="success">Live demo</Badge>

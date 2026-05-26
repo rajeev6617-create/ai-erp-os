@@ -113,7 +113,7 @@ export function LoginScreen() {
                   <Bot className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <p className="text-lg font-semibold tracking-tight">AI ERP OS</p>
+                  <p className="text-lg font-semibold tracking-tight">ASTRA</p>
                   <p className="text-xs text-sidebar-muted">Enterprise identity gateway</p>
                 </div>
               </div>
@@ -159,7 +159,7 @@ export function LoginScreen() {
                   <Bot className="h-5 w-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <p className="text-base font-semibold tracking-tight">AI ERP OS</p>
+                  <p className="text-base font-semibold tracking-tight">ASTRA</p>
                   <p className="text-xs text-muted-foreground">Enterprise access</p>
                 </div>
               </div>
@@ -183,7 +183,7 @@ export function LoginScreen() {
               <div className="mb-8">
                 <p className="text-sm font-medium text-primary">Welcome back</p>
                 <h2 className="mt-2 text-2xl font-semibold tracking-tight">
-                  Sign in to AI ERP OS
+                  Sign in to ASTRA
                 </h2>
                 <p className="mt-2 text-sm text-muted-foreground">
                   Use your enterprise credentials to continue.

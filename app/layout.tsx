@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "AI ERP OS — Enterprise Dashboard",
-  description: "AI-powered enterprise resource planning for modern Indian businesses",
+  title: "ASTRA - Enterprise Dashboard",
+  description: "ASTRA is the AI operating system for modern enterprises.",
 };
 
 export default function RootLayout({

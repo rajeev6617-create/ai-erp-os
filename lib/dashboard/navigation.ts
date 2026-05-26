@@ -11,6 +11,7 @@ import {
   FileText,
   Settings,
   Plug,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 
@@ -39,6 +40,19 @@ export const mainNavigation: NavItem[] = [
     label: "Finance",
     href: "/dashboard/finance",
     icon: IndianRupee,
+    roles: [
+      "super-admin",
+      "organization-admin",
+      "manager",
+      "cfo",
+      "finance-manager",
+      "auditor",
+    ],
+  },
+  {
+    label: "Operations",
+    href: "/dashboard/operations",
+    icon: Workflow,
     roles: [
       "super-admin",
       "organization-admin",

@@ -4,11 +4,11 @@ import { ArrowRight, BadgeCheck } from "lucide-react";
 import { PublicPageShell } from "@/components/marketing/public-shell";
 
 export const metadata: Metadata = {
-  title: "Pricing | AI ERP OS",
+  title: "Pricing | ASTRA",
   description:
-    "Simple AI ERP OS pricing for workflow automation, finance intelligence, approval controls, reporting, and enterprise customization.",
+    "Simple ASTRA pricing for workflow automation, finance intelligence, approval controls, reporting, and enterprise customization.",
   keywords: [
-    "AI ERP pricing",
+    "ASTRA pricing",
     "workflow automation pricing",
     "finance automation pricing",
     "ERP implementation pilot",
