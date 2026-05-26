@@ -15,6 +15,8 @@ const PUBLIC_API_PATHS = [
   "/api/auth/login",
   "/api/auth/refresh",
   "/api/auth/logout",
+  "/api/portal/auth/login",
+  "/api/portal/auth/logout",
   "/api/health/db",
 ];
 

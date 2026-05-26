@@ -11,6 +11,7 @@ import {
 import { ROLE_ORG_ADMIN } from "../lib/auth/constants";
 import { seedFinanceData } from "./seed-finance";
 import { seedOperationsData } from "./seed-operations";
+import { seedRelationshipPortals } from "./seed-relationships";
 import { seedWorkflows } from "./seed-workflows";
 
 const pool = new Pool({
@@ -173,6 +174,7 @@ async function main() {
   await seedWorkflows(prisma, organization.id, admin.id);
   await seedFinanceData(prisma, organization.id, admin.id, admin.id, admin.id);
   await seedOperationsData(prisma, organization.id, admin.id);
+  await seedRelationshipPortals(prisma, organization.id, admin.id);
 
   const elapsedSeconds = ((Date.now() - startedAt) / 1000).toFixed(2);
   console.log(`Seed complete in ${elapsedSeconds}s.`);

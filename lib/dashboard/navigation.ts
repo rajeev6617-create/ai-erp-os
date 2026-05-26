@@ -12,6 +12,8 @@ import {
   Settings,
   Plug,
   Workflow,
+  Handshake,
+  Store,
   type LucideIcon,
 } from "lucide-react";
 
@@ -53,6 +55,32 @@ export const mainNavigation: NavItem[] = [
     label: "Operations",
     href: "/dashboard/operations",
     icon: Workflow,
+    roles: [
+      "super-admin",
+      "organization-admin",
+      "manager",
+      "cfo",
+      "finance-manager",
+      "auditor",
+    ],
+  },
+  {
+    label: "CRM",
+    href: "/dashboard/crm",
+    icon: Handshake,
+    roles: [
+      "super-admin",
+      "organization-admin",
+      "manager",
+      "cfo",
+      "finance-manager",
+      "auditor",
+    ],
+  },
+  {
+    label: "SRM",
+    href: "/dashboard/srm",
+    icon: Store,
     roles: [
       "super-admin",
       "organization-admin",

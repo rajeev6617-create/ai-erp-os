@@ -294,6 +294,57 @@ enum OperationRiskSeverity {
   CRITICAL
 }
 
+enum PortalAccountType {
+  CUSTOMER
+  VENDOR
+}
+
+enum PortalAccountStatus {
+  INVITED
+  ACTIVE
+  SUSPENDED
+  DISABLED
+}
+
+enum CrmLeadStatus {
+  NEW
+  QUALIFIED
+  NURTURING
+  CONVERTED
+  LOST
+}
+
+enum SalesOpportunityStage {
+  DISCOVERY
+  PROPOSAL
+  NEGOTIATION
+  WON
+  LOST
+}
+
+enum VendorOnboardingStatus {
+  INVITED
+  DOCUMENTS_PENDING
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+}
+
+enum SupportTicketStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_ON_CUSTOMER
+  RESOLVED
+  CLOSED
+}
+
+enum SupportTicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
 // =============================================================================
 // TENANT & SAAS
 // =============================================================================
@@ -350,6 +401,7 @@ model Organization {
   complianceFrameworks  ComplianceFramework[]
   ledgerAccounts        LedgerAccount[]
   fiscalYears           FiscalYear[]
+  customers             Customer[]
   vendors               Vendor[]
   invoices              Invoice[]
   payments              Payment[]
@@ -378,6 +430,13 @@ model Organization {
   operationRiskAlerts      OperationRiskAlert[]
   operationFinanceImpacts  OperationFinanceImpact[]
   operationAuditEvents     OperationAuditEvent[]
+  portalAccounts           PortalAccount[]
+  portalSessions           PortalSession[]
+  crmLeads                 CrmLead[]
+  salesOpportunities       SalesOpportunity[]
+  vendorOnboardings        VendorOnboarding[]
+  supportTickets           SupportTicket[]
+  relationshipAiInsights   RelationshipAiInsight[]
 
   @@index([status, deletedAt])
   @@index([gstin])
@@ -1750,11 +1809,236 @@ model Vendor {
   invoices     Invoice[]
   payments     Payment[]
   expenses     Expense[]
+  portalAccounts PortalAccount[]
+  onboardings    VendorOnboarding[]
+  supportTickets SupportTicket[]
 
   @@unique([organizationId, code])
   @@index([organizationId, status, deletedAt])
   @@index([gstin])
   @@map("vendors")
+}
+
+model Customer {
+  id                String   @id @default(cuid())
+  organizationId    String
+  code              String
+  name              String
+  legalName         String?
+  industry          String?
+  segment           String?
+  gstin             String?  @db.VarChar(15)
+  pan               String?  @db.VarChar(10)
+  email             String?
+  phone             String?  @db.VarChar(15)
+  billingAddress    Json?
+  shippingAddress   Json?
+  creditLimit       Decimal? @db.Decimal(18, 2)
+  outstandingAmount Decimal  @default(0) @db.Decimal(18, 2)
+  status            String   @default("ACTIVE")
+  metadata          Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization       Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  portalAccounts     PortalAccount[]
+  leads              CrmLead[]
+  opportunities      SalesOpportunity[]
+  supportTickets     SupportTicket[]
+
+  @@unique([organizationId, code])
+  @@index([organizationId, status, deletedAt], map: "customers_org_status_deleted_idx")
+  @@index([gstin])
+  @@map("customers")
+}
+
+model PortalAccount {
+  id             String              @id @default(cuid())
+  organizationId String
+  accountType    PortalAccountType
+  customerId     String?
+  vendorId       String?
+  email          String
+  displayName    String
+  passwordHash   String
+  status         PortalAccountStatus @default(INVITED)
+  lastLoginAt    DateTime?
+  metadata       Json?
+
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+  deletedAt DateTime?
+
+  organization Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer?       @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  vendor       Vendor?         @relation(fields: [vendorId], references: [id], onDelete: Cascade)
+  sessions     PortalSession[]
+
+  @@unique([organizationId, email])
+  @@index([organizationId, accountType, status, deletedAt], map: "portal_accounts_org_type_status_idx")
+  @@index([customerId])
+  @@index([vendorId])
+  @@map("portal_accounts")
+}
+
+model PortalSession {
+  id              String    @id @default(cuid())
+  organizationId  String
+  portalAccountId String
+  tokenHash       String    @unique
+  ipAddress       String?   @db.VarChar(45)
+  userAgent       String?
+  expiresAt       DateTime
+  revokedAt       DateTime?
+  lastActivityAt  DateTime  @default(now())
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization  Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  portalAccount PortalAccount @relation(fields: [portalAccountId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, portalAccountId])
+  @@index([portalAccountId, expiresAt])
+  @@map("portal_sessions")
+}
+
+model CrmLead {
+  id             String        @id @default(cuid())
+  organizationId String
+  customerId     String?
+  leadNumber     String
+  companyName    String
+  contactName    String?
+  email          String?
+  phone          String?       @db.VarChar(15)
+  source         String
+  status         CrmLeadStatus @default(NEW)
+  score          Int           @default(0)
+  estimatedValue Decimal?      @db.Decimal(18, 2)
+  ownerRole      String?
+  nextAction     String?
+  dueAt          DateTime?
+  convertedAt    DateTime?
+  metadata       Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, leadNumber])
+  @@index([organizationId, status, score], map: "crm_leads_org_status_score_idx")
+  @@index([customerId])
+  @@map("crm_leads")
+}
+
+model SalesOpportunity {
+  id                String                @id @default(cuid())
+  organizationId    String
+  customerId        String
+  opportunityNumber String
+  name              String
+  stage             SalesOpportunityStage @default(DISCOVERY)
+  amount            Decimal               @db.Decimal(18, 2)
+  probability       Int                   @default(0)
+  expectedCloseAt   DateTime?
+  ownerRole         String?
+  metadata          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer     @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, opportunityNumber])
+  @@index([organizationId, stage, expectedCloseAt], map: "sales_opps_org_stage_close_idx")
+  @@index([customerId, stage])
+  @@map("sales_opportunities")
+}
+
+model VendorOnboarding {
+  id               String                 @id @default(cuid())
+  organizationId   String
+  vendorId         String?
+  onboardingNumber String
+  supplierName     String
+  contactName      String?
+  email            String?
+  status           VendorOnboardingStatus @default(INVITED)
+  riskScore        Int                    @default(0)
+  currentStep      String
+  submittedAt      DateTime?
+  approvedAt       DateTime?
+  metadata         Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  vendor       Vendor?      @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, onboardingNumber])
+  @@index([organizationId, status, riskScore], map: "vendor_onboarding_org_status_risk_idx")
+  @@index([vendorId, status])
+  @@map("vendor_onboardings")
+}
+
+model SupportTicket {
+  id             String                @id @default(cuid())
+  organizationId String
+  customerId     String?
+  vendorId       String?
+  ticketNumber   String
+  subject        String
+  description    String?
+  status         SupportTicketStatus   @default(OPEN)
+  priority       SupportTicketPriority @default(MEDIUM)
+  channel        String                @default("PORTAL")
+  ownerRole      String?
+  dueAt          DateTime?
+  resolvedAt     DateTime?
+  metadata       Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer?    @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  vendor       Vendor?      @relation(fields: [vendorId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, ticketNumber])
+  @@index([organizationId, status, priority], map: "support_tickets_org_status_priority_idx")
+  @@index([customerId, status])
+  @@index([vendorId, status])
+  @@map("support_tickets")
+}
+
+model RelationshipAiInsight {
+  id             String                @id @default(cuid())
+  organizationId String
+  module         String
+  entityType     String?
+  entityId       String?
+  title          String
+  description    String
+  severity       OperationRiskSeverity @default(MEDIUM)
+  confidence     Decimal?              @db.Decimal(5, 2)
+  status         String                @default("OPEN")
+  metadata       Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, module, severity, status], map: "relationship_ai_org_module_severity_idx")
+  @@index([organizationId, entityType, entityId], map: "relationship_ai_org_entity_idx")
+  @@map("relationship_ai_insights")
 }
 
 model Invoice {
