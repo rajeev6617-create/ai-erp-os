@@ -14,6 +14,8 @@ import {
   Workflow,
   Handshake,
   Store,
+  PackageSearch,
+  Factory,
   type LucideIcon,
 } from "lucide-react";
 
@@ -81,6 +83,32 @@ export const mainNavigation: NavItem[] = [
     label: "SRM",
     href: "/dashboard/srm",
     icon: Store,
+    roles: [
+      "super-admin",
+      "organization-admin",
+      "manager",
+      "cfo",
+      "finance-manager",
+      "auditor",
+    ],
+  },
+  {
+    label: "Inventory",
+    href: "/dashboard/inventory",
+    icon: PackageSearch,
+    roles: [
+      "super-admin",
+      "organization-admin",
+      "manager",
+      "cfo",
+      "finance-manager",
+      "auditor",
+    ],
+  },
+  {
+    label: "Production",
+    href: "/dashboard/production",
+    icon: Factory,
     roles: [
       "super-admin",
       "organization-admin",

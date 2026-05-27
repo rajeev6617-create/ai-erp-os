@@ -69,6 +69,30 @@ export const DASHBOARD_ROUTE_POLICIES = [
     description: "Supplier relationship operations",
   },
   {
+    prefix: "/dashboard/inventory",
+    roles: [
+      ROLE_SUPER_ADMIN,
+      ROLE_ORG_ADMIN,
+      ROLE_MANAGER,
+      ROLE_CFO,
+      ROLE_FINANCE_MANAGER,
+      ROLE_AUDITOR,
+    ],
+    description: "Inventory and warehouse operations",
+  },
+  {
+    prefix: "/dashboard/production",
+    roles: [
+      ROLE_SUPER_ADMIN,
+      ROLE_ORG_ADMIN,
+      ROLE_MANAGER,
+      ROLE_CFO,
+      ROLE_FINANCE_MANAGER,
+      ROLE_AUDITOR,
+    ],
+    description: "Production planning and quality operations",
+  },
+  {
     prefix: "/dashboard/operations",
     roles: [
       ROLE_SUPER_ADMIN,
