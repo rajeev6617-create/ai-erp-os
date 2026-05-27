@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { OperationModuleDashboard } from "@/components/operations/operation-module-dashboard";
+import { P2pProcureToPayDashboard } from "@/components/operations/p2p-procure-to-pay-dashboard";
 import { requireDashboardAuth } from "@/lib/auth/server";
 import { OPERATIONS_DASHBOARD_ROLES } from "@/lib/operations/access";
 import { getOperationModuleDashboard } from "@/lib/operations/data";
@@ -10,5 +10,5 @@ export default async function P2pOperationsPage() {
 
   if (!data) notFound();
 
-  return <OperationModuleDashboard data={data} />;
+  return <P2pProcureToPayDashboard data={data} />;
 }

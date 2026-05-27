@@ -88,6 +88,7 @@ export async function getOperationModuleDashboard(
 
   if (!operationModule) return null;
 
+  const stages = filterConfiguredStages(operationModule.stages, operationModule.metadata);
   const records = operationModule.records.map((record) => ({
     id: record.id,
     reference: record.reference,
@@ -129,7 +130,7 @@ export async function getOperationModuleDashboard(
     recordReference: impact.record?.reference ?? null,
   }));
   const financeSummary = summarizeFinanceImpacts(financeImpacts);
-  const completedStages = operationModule.stages.filter(
+  const completedStages = stages.filter(
     (stage) => stage.status === "COMPLETED",
   ).length;
   const openRecords = records.filter((record) =>
@@ -159,15 +160,15 @@ export async function getOperationModuleDashboard(
       waitingApprovals,
       exceptionRecords: records.filter((record) => record.status === "EXCEPTION").length,
       stageCompletionPercent:
-        operationModule.stages.length > 0
-          ? Math.round((completedStages / operationModule.stages.length) * 100)
+        stages.length > 0
+          ? Math.round((completedStages / stages.length) * 100)
           : 0,
       activeRiskAlerts: riskAlerts.length,
       highRiskAlerts,
       financeExposure:
         financeSummary.outflow + financeSummary.inflow + financeSummary.neutralExposure,
     },
-    stages: operationModule.stages.map((stage) => ({
+    stages: stages.map((stage) => ({
       id: stage.id,
       key: stage.stageKey,
       name: stage.name,
@@ -264,4 +265,26 @@ function decimalToNumberOrNull(value: unknown): number | null {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value);
+}
+
+function filterConfiguredStages<T extends { stageKey: string }>(
+  stages: T[],
+  metadata: unknown,
+): T[] {
+  if (!isRecord(metadata) || !Array.isArray(metadata.stageKeys)) {
+    return stages;
+  }
+
+  const stageKeys = metadata.stageKeys.filter(
+    (value): value is string => typeof value === "string" && value.length > 0,
+  );
+
+  if (stageKeys.length === 0) return stages;
+
+  const order = new Map(stageKeys.map((key, index) => [key, index]));
+  return stages
+    .filter((stage) => order.has(stage.stageKey))
+    .sort((left, right) => {
+      return (order.get(left.stageKey) ?? 0) - (order.get(right.stageKey) ?? 0);
+    });
 }
