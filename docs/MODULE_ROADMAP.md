@@ -2,413 +2,279 @@
 
 ## Roadmap Objective
 
-This roadmap defines the target module expansion path for ASTRA as a Super ERP platform. It prioritizes enterprise stability, workflow reuse, finance impact visibility, and AI-assisted operations.
+This roadmap translates the ASTRA Super ERP blueprint into a practical execution path. It prioritizes durable platform capabilities first, then expands module depth, AI automation, industry templates, and enterprise deployment readiness.
 
 ## Roadmap Principles
 
-- Extend from shared foundations before building deep module-specific features.
-- Keep modules independently releasable.
-- Use one workflow, audit, approval, notification, and AI signal pattern across modules.
-- Avoid database or UI fragmentation between industries.
-- Treat finance impact and audit evidence as first-class outputs of operational modules.
+- Ship stable modules before deep specialization.
+- Reuse shared workflow, approval, audit, finance impact, analytics, and AI services.
+- Keep every module tenant-safe and API-addressable.
+- Build SME-ready paths without blocking enterprise-grade controls.
+- Make AI useful through exception detection, summaries, forecasts, and recommendations before autonomous execution.
 
-## Foundation Capabilities
+## Phase 1 - Platform Control Plane
 
-These capabilities should support every module.
-
-- Tenant isolation
-- RBAC and permission policies
-- Configurable workflow stages
-- Approval matrix
-- Audit logs
-- Document attachments
-- Notifications and reminders
-- AI risk and exception alerts
-- Finance impact summaries
-- Report export framework
-- Integration event tracking
-- Module configuration
-- Custom fields
-- Master data references
-
-## Phase 1 - Core Operating Layer
-
-Focus:
-
-- Dashboard shell
-- Auth and RBAC
-- Workflow engine
-- Approval inbox
-- Audit logging
-- Finance dashboard
-- AI dashboard
-- Reporting exports
-- Settings and configuration
-
-Outcome:
-
-ASTRA operates as a secure enterprise workflow and finance command center.
-
-## Phase 2 - Finance Operations Modules
-
-### P2P - Procure to Pay
+Goal: establish the core enterprise operating layer.
 
 Scope:
 
-- Purchase requisition
-- Supplier selection
-- Purchase orders
-- Goods receipt
-- Supplier invoice
-- Three-way match
-- Payment approval
-- Payment release
+- Authentication, session management, tenant context, roles, and permissions.
+- Dashboard shell, navigation, settings, and configuration.
+- Workflow definitions, executions, approvals, SLA states, and notifications.
+- Audit logs, activity logs, request metadata, and evidence references.
+- Finance foundation: fiscal year, ledger accounts, journal structures, finance rules.
+- AI agent foundation: role-aware AI assistants, audit-ready recommendations, safe API boundaries.
+- Reporting foundation: PDF and Excel exports, MIS-ready summaries.
 
-Priority workflows:
+Exit criteria:
 
-- Requisition to PO
-- PO approval
-- Invoice exception review
-- Payment release approval
+- Every dashboard route is protected.
+- Every material workflow action writes audit evidence.
+- Core APIs return consistent errors.
+- Production build, lint, TypeScript, route audit, and migration checks are stable.
 
-AI capabilities:
+## Phase 2 - Finance and Operations Foundation
 
-- Duplicate invoice alert
-- Vendor risk alert
-- Spend policy exception
-- Payment timing recommendation
+Goal: connect spend, revenue, close, and user operations into a common control plane.
 
-### OTC - Order to Cash
+Modules:
 
-Scope:
+- P2P Procure to Pay.
+- OTC Order to Cash.
+- R2R Record to Report.
+- HR/User Operations.
 
-- Customer onboarding
-- Credit review
-- Quote and order
-- Delivery confirmation
-- Invoice generation
-- Collection tracking
-- Receipt matching
-- Dispute resolution
+Execution scope:
 
-Priority workflows:
+- Dashboards for each module.
+- Workflow stages and approval flows.
+- Audit logs and exception tracking.
+- Finance impact summaries.
+- Seeded demo data and safe sample workflows.
+- AI risk alerts for policy, cash, control, and operational exceptions.
 
-- Customer approval
-- Credit hold release
-- Sales order approval
-- Collection escalation
+AI focus:
 
-AI capabilities:
+- AI CFO: cash timing, budget pressure, close risk.
+- AI Auditor: approval evidence, segregation of duties, policy exceptions.
+- AI Procurement Manager: spend variance, duplicate invoice, vendor concentration.
 
-- Credit risk scoring
-- Collection prioritization
-- Dispute summary
-- Cash receipt forecast
+## Phase 3 - Relationship Portals
 
-### R2R - Record to Report
+Goal: extend ASTRA to customers and vendors while preserving tenant boundaries.
 
-Scope:
+Modules:
 
-- Journal entry
-- Accruals
-- Reconciliations
-- Period close checklist
-- Trial balance
-- Management reports
-- Audit schedules
+- CRM.
+- SRM.
+- Customer portal.
+- Vendor portal.
+- Lead management.
+- Sales pipeline.
+- Vendor onboarding.
+- Ticketing and support foundation.
 
-Priority workflows:
+Execution scope:
 
-- Journal approval
-- Account reconciliation
-- Close task completion
-- Variance review
+- Portal authentication separated from internal user authentication.
+- Customer and vendor records linked to workflows, tickets, orders, invoices, and onboarding cases.
+- Audit logs for portal login, updates, submissions, and approvals.
+- AI insights for pipeline risk, vendor risk, account health, and support priority.
 
-AI capabilities:
+AI focus:
 
-- Journal anomaly detection
-- Reconciliation matching
-- Close bottleneck alert
-- Variance explanation
+- AI Executive Copilot: customer and vendor health summaries.
+- AI Procurement Manager: vendor onboarding and supplier risk.
+- AI Operations Manager: support escalations and portal-driven exceptions.
 
-Outcome:
+## Phase 4 - Inventory, Warehouse, Production, and Quality
 
-ASTRA becomes finance-aware across spend, revenue, cash, controls, and reporting.
+Goal: support physical operations and manufacturing workflows.
 
-## Phase 3 - Relationship Operations
+Modules:
 
-### CRM
+- Inventory.
+- Warehouse.
+- Stock movement.
+- GRN.
+- Dispatch.
+- BOM.
+- Production planning.
+- Quality control.
 
-Scope:
+Execution scope:
 
-- Lead management
-- Account management
-- Contact management
-- Opportunity pipeline
-- Quotes
-- Customer interactions
-- Renewals
+- Item, warehouse, stock, movement, GRN, dispatch, BOM, production plan, and quality records.
+- Stock adjustment and transfer workflows.
+- GRN and dispatch operational states.
+- Production plan status, capacity signals, and output tracking.
+- QC checks, holds, defects, and quality evidence.
+- Inventory analytics and AI alerts.
 
-Priority workflows:
+AI focus:
 
-- Lead qualification
-- Opportunity approval
-- Quote approval
-- Renewal risk review
+- AI Operations Manager: stockout risk, dispatch delay, production schedule risk.
+- AI Procurement Manager: supplier lot and material shortage risk.
+- AI Auditor: inventory variance, QC evidence, adjustment approvals.
 
-AI capabilities:
+## Phase 5 - Executive Intelligence and Board MIS
 
-- Lead scoring
-- Opportunity risk
-- Next-best action
-- Forecast confidence
+Goal: turn ASTRA into an executive operating system.
 
-### SRM
+Modules:
 
-Scope:
+- CEO dashboard.
+- CFO dashboard.
+- Board MIS.
+- Enterprise KPIs.
+- AI forecasting.
+- Anomaly detection.
+- Predictive analytics.
+- AI copilots.
+- Strategic insights.
 
-- Supplier onboarding
-- Qualification
-- Contract records
-- Performance scorecards
-- Supplier risk reviews
-- Compliance documents
+Execution scope:
 
-Priority workflows:
+- Executive KPI model across finance, operations, workflow, risk, and customer health.
+- Forecast model for cash, revenue, cost, capacity, risk, and close readiness.
+- Board pack model with CFO signoff, governance summary, and audit trace.
+- Executive AI recommendations with confidence, source context, and action suggestions.
 
-- Supplier onboarding approval
-- Contract review
-- Supplier risk remediation
-- Document expiry follow-up
+AI focus:
 
-AI capabilities:
+- AI CFO: cash runway, margin, working capital, close exposure.
+- AI Executive Copilot: board narrative, strategic risks, decision prompts.
+- AI Auditor: control health, exception closure, governance readiness.
 
-- Supplier risk summary
-- Missing document detection
-- Contract clause extraction
-- Performance anomaly detection
+## Phase 6 - Compliance and Enterprise Controls
 
-Outcome:
+Goal: support regulated and enterprise-grade customers.
 
-ASTRA connects enterprise workflows to customer and supplier relationships.
+Modules:
 
-## Phase 4 - Supply Chain and Production
+- Compliance obligations.
+- Control testing.
+- Evidence management.
+- Policy exceptions.
+- Remediation tracking.
+- Access reviews.
 
-### Inventory
+Execution scope:
 
-Scope:
+- Control library and obligation mapping.
+- Evidence requests and recurring control workflows.
+- Policy exceptions and remediation approvals.
+- Audit-ready exports.
+- Risk register integration.
+- Enterprise SSO, SCIM, advanced RBAC, and retention controls.
 
-- Item master
-- Warehouse and bin tracking
-- Stock ledger
-- Transfers
-- Cycle counts
-- Reservations
-- Reorder planning
-- Valuation
+AI focus:
 
-Priority workflows:
+- AI Compliance Officer: obligation mapping, evidence gaps, control drift.
+- AI Auditor: anomaly detection, audit pack preparation, policy exception review.
 
-- Stock adjustment approval
-- Transfer approval
-- Cycle count exception
-- Reorder recommendation review
+## Phase 7 - Industry Templates and Plugin Ecosystem
 
-AI capabilities:
-
-- Stockout prediction
-- Slow-moving stock alert
-- Shrinkage detection
-- Reorder recommendation
-
-### Production
+Goal: package ASTRA for repeatable industry adoption and controlled extensibility.
 
 Scope:
 
-- Bill of materials
-- Routings
-- Work orders
-- Material issue
-- Shop floor execution
-- Quality checks
-- Finished goods receipt
-- Production costing
+- Manufacturing template.
+- Distribution template.
+- Services template.
+- Regulated operations template.
+- Retail/ecommerce operations template.
+- Plugin architecture for UI extensions, integrations, reports, and AI tools.
 
-Priority workflows:
+Execution scope:
 
-- Work order release
-- Material shortage exception
-- Quality hold review
-- Production variance approval
+- Template installer and versioning.
+- Configurable workflows, roles, fields, dashboards, and reports.
+- Migration-safe template upgrades.
+- Partner and customer plugin model.
+- API-first extension rules.
 
-AI capabilities:
+## Module Roadmap Matrix
 
-- Capacity risk alert
-- Material shortage prediction
-- Quality anomaly detection
-- Yield variance summary
+| Module | MVP Capability | Enterprise Depth | AI Leverage | Priority |
+| --- | --- | --- | --- | --- |
+| P2P | Requisition, PO, invoice, payment approval | 3-way match, vendor terms, budget controls | Duplicate invoice, spend variance, cash timing | High |
+| OTC | Order, invoice, collection, dispute | Credit holds, revenue recognition, customer risk | Collection forecast, dispute risk | High |
+| R2R | Journals, reconciliations, close tasks | Close calendar, evidence, intercompany, reporting packs | Close anomaly, missing evidence | High |
+| CRM | Leads, opportunities, customers, tickets | Account plans, renewals, support SLAs | Pipeline forecast, churn risk | Medium |
+| SRM | Vendors, onboarding, contracts | Supplier scorecards, compliance renewals | Vendor risk, SLA drift | Medium |
+| Inventory | Items, stock balances, movements | Valuation, lots, cycle counts | Stockout risk, dead stock | High |
+| Warehouse | GRN, putaway, pick, dispatch | Bin management, barcode/RFID, labor planning | Dock congestion, pick delay | Medium |
+| Production | BOM, plans, work orders | Routing, capacity, variance costing | Schedule slip, capacity risk | Medium |
+| Quality | QC checks, holds, defects | CAPA, supplier quality, inspection plans | Yield anomaly, defect clustering | Medium |
+| HR/User Operations | Users, roles, access requests | Access reviews, workload, onboarding | Access risk, orphaned permissions | High |
+| Compliance | Controls, obligations, evidence | Risk register, remediation, audit packs | Control drift, evidence gap | High |
+| Board/Executive MIS | KPIs, forecasts, board packs | Strategy tracking, governance signoff | Strategic insights, executive copilot | High |
 
-Outcome:
+## Business Strategy Roadmap
 
-ASTRA supports operational execution from supply planning to production output.
+### SME Roadmap
 
-## Phase 5 - Governance and Executive Intelligence
+SME product motion should be fast, guided, and template-led.
 
-### Compliance
+- Month 0-3: approvals, finance basics, P2P, OTC, R2R starter dashboards.
+- Month 3-6: inventory, CRM/SRM portals, executive MIS, AI alerts.
+- Month 6-12: industry starter templates, mobile approvals, import/export tooling.
 
-Scope:
+Commercial focus:
 
-- Statutory calendar
-- Filing obligations
-- Policy attestations
-- Control testing
-- Evidence collection
-- Exceptions
-- Audit readiness
+- Low-friction onboarding.
+- Fixed implementation packages.
+- Module bundles.
+- Clear upgrade path to enterprise controls.
 
-Priority workflows:
+### Enterprise Roadmap
 
-- Filing review
-- Evidence collection
-- Control exception remediation
-- Policy attestation
+Enterprise product motion should be governance-led.
 
-AI capabilities:
+- Advanced identity: SSO, SCIM, MFA policy, session policy.
+- Advanced authorization: RBAC, ABAC attributes, approval segregation.
+- Dedicated data options: dedicated database, region, private network.
+- Integration depth: ERP, finance, identity, document storage, data warehouse.
+- Audit and compliance exports.
+- AI governance, evaluation, prompt controls, and model policy.
 
-- Filing risk alert
-- Evidence completeness check
-- Control exception summary
-- Compliance calendar assistant
+### Industry Adaptation Roadmap
 
-### Board MIS
+1. Manufacturing: production, inventory, quality, P2P, dispatch, executive MIS.
+2. Distribution: warehouse, stock, sales orders, vendor management, logistics.
+3. Professional services: projects, approvals, revenue, expenses, customer support.
+4. Regulated services: compliance, evidence, vendor controls, access governance.
+5. Retail/ecommerce: inventory, orders, returns, customer support, finance controls.
 
-Scope:
+### Monetization Roadmap
 
-- Executive KPI scorecards
-- Finance summaries
-- Operational performance
-- Risk register
-- Compliance posture
-- Cash outlook
-- Board packs
+Pricing dimensions:
 
-Priority workflows:
+- Platform subscription.
+- Module bundles.
+- Active user seats.
+- Portal users or external party volume.
+- AI usage and premium copilots.
+- Integration packs.
+- Industry templates.
+- Enterprise controls and dedicated deployment.
 
-- Board pack preparation
-- KPI certification
-- Management commentary review
-- Risk escalation
+### Deployment Strategy
 
-AI capabilities:
+- Shared SaaS: standard customers and SMEs.
+- Enterprise SaaS: dedicated database, custom retention, SSO, and advanced integrations.
+- Private cloud: regulated enterprise customers.
+- Hybrid bridge: controlled integration with on-premise finance, ERP, or warehouse systems.
 
-- Narrative generation
-- Variance explanation
-- Decision brief preparation
-- Risk trend summary
+## Execution Governance
 
-Outcome:
+Every module release should pass:
 
-ASTRA becomes the executive operating system for enterprise visibility and governance.
-
-## Cross-Module Dependencies
-
-P2P depends on:
-
-- Suppliers
-- Items
-- Cost centers
-- Approval policies
-- Finance impact model
-
-OTC depends on:
-
-- Customers
-- Items or services
-- Credit policies
-- Tax profiles
-- Receipt matching
-
-R2R depends on:
-
-- Chart of accounts
-- Journals
-- Period calendar
-- Reconciliation rules
-- Reporting definitions
-
-CRM depends on:
-
-- Customers
-- Contacts
-- Sales users
-- Product catalog
-- Revenue forecast model
-
-SRM depends on:
-
-- Suppliers
-- Contracts
-- Compliance document types
-- Performance scorecards
-
-Inventory depends on:
-
-- Items
-- Warehouses
-- Locations
-- Stock ledger
-- Valuation policies
-
-Production depends on:
-
-- Items
-- BOMs
-- Routings
-- Work centers
-- Inventory availability
-- Costing policies
-
-Compliance depends on:
-
-- Legal entities
-- Statutory calendar
-- Control library
-- Evidence registry
-- Audit log
-
-Board MIS depends on:
-
-- Finance facts
-- Workflow facts
-- Operational KPIs
-- AI risk signals
-- Certified report definitions
-
-## Module Readiness Checklist
-
-Before a module is marked enterprise-ready:
-
-- It has tenant-scoped data boundaries.
-- It has role-gated routes and APIs.
-- It has workflow stages.
-- It has approval flows.
-- It writes audit logs.
-- It has AI risk or exception signals.
-- It exposes finance impact where applicable.
-- It supports empty, loading, and error states.
-- It has seeded demo data.
-- It appears in reporting or analytics where relevant.
-- It passes TypeScript, lint, build, and route protection audits.
-
-## Recommended Build Order
-
-1. P2P
-2. OTC
-3. R2R
-4. Board MIS
-5. SRM
-6. CRM
-7. Inventory
-8. Production
-9. Compliance
-10. Advanced analytics and industry templates
+- TypeScript, lint, production build.
+- Prisma migration validation and drift check when schema changes.
+- Route protection audit for dashboard surfaces.
+- Seed data check for demo paths.
+- RBAC and tenant-scope review.
+- Audit event review.
+- AI safety review when recommendations or actions are introduced.
