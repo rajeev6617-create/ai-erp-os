@@ -1,14 +1,14 @@
 import { notFound } from "next/navigation";
-import { OperationModuleDashboard } from "@/components/operations/operation-module-dashboard";
+import { OtcOrderToCashDashboard } from "@/components/operations/otc-order-to-cash-dashboard";
 import { requireDashboardAuth } from "@/lib/auth/server";
 import { OPERATIONS_DASHBOARD_ROLES } from "@/lib/operations/access";
-import { getOperationModuleDashboard } from "@/lib/operations/data";
+import { getOtcOperationsDashboard } from "@/lib/operations/otc-data";
 
 export default async function OtcOperationsPage() {
   const auth = await requireDashboardAuth(OPERATIONS_DASHBOARD_ROLES, "/dashboard");
-  const data = await getOperationModuleDashboard(auth.organization.id, "otc");
+  const data = await getOtcOperationsDashboard(auth.organization.id);
 
   if (!data) notFound();
 
-  return <OperationModuleDashboard data={data} />;
+  return <OtcOrderToCashDashboard data={data} />;
 }
