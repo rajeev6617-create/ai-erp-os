@@ -93,6 +93,18 @@ export const DASHBOARD_ROUTE_POLICIES = [
     description: "Production planning and quality operations",
   },
   {
+    prefix: "/dashboard/executive",
+    roles: [
+      ROLE_SUPER_ADMIN,
+      ROLE_ORG_ADMIN,
+      ROLE_MANAGER,
+      ROLE_CFO,
+      ROLE_FINANCE_MANAGER,
+      ROLE_AUDITOR,
+    ],
+    description: "Executive intelligence and Board MIS",
+  },
+  {
     prefix: "/dashboard/operations",
     roles: [
       ROLE_SUPER_ADMIN,

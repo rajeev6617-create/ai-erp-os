@@ -16,6 +16,7 @@ import {
   Store,
   PackageSearch,
   Factory,
+  BriefcaseBusiness,
   type LucideIcon,
 } from "lucide-react";
 
@@ -109,6 +110,19 @@ export const mainNavigation: NavItem[] = [
     label: "Production",
     href: "/dashboard/production",
     icon: Factory,
+    roles: [
+      "super-admin",
+      "organization-admin",
+      "manager",
+      "cfo",
+      "finance-manager",
+      "auditor",
+    ],
+  },
+  {
+    label: "Executive",
+    href: "/dashboard/executive",
+    icon: BriefcaseBusiness,
     roles: [
       "super-admin",
       "organization-admin",

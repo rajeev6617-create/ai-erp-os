@@ -430,6 +430,26 @@ enum SupplyChainAlertType {
   BOM_VARIANCE
 }
 
+enum ExecutiveAudience {
+  CEO
+  CFO
+  BOARD
+}
+
+enum ExecutiveSignalStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+  ARCHIVED
+}
+
+enum BoardMisStatus {
+  DRAFT
+  READY
+  APPROVED
+  ARCHIVED
+}
+
 // =============================================================================
 // TENANT & SAAS
 // =============================================================================
@@ -532,6 +552,12 @@ model Organization {
   productionPlans          ProductionPlan[]
   qualityChecks            QualityCheck[]
   inventoryAiAlerts        InventoryAiAlert[]
+  executiveKpis            ExecutiveKpi[]
+  executiveForecasts       ExecutiveForecast[]
+  executiveAnomalies       ExecutiveAnomaly[]
+  executiveCopilots        ExecutiveCopilot[]
+  executiveStrategicInsights ExecutiveStrategicInsight[]
+  boardMisSnapshots        BoardMisSnapshot[]
 
   @@index([status, deletedAt])
   @@index([gstin])
@@ -2445,6 +2471,169 @@ model InventoryAiAlert {
   @@index([organizationId, alertType, severity, status], map: "inventory_ai_alerts_org_type_severity_idx")
   @@index([organizationId, entityType, entityId], map: "inventory_ai_alerts_org_entity_idx")
   @@map("inventory_ai_alerts")
+}
+
+// =============================================================================
+// EXECUTIVE INTELLIGENCE
+// =============================================================================
+
+model ExecutiveKpi {
+  id              String            @id @default(cuid())
+  organizationId  String
+  audience        ExecutiveAudience
+  code            String
+  name            String
+  value           Decimal?          @db.Decimal(18, 4)
+  valueText       String?
+  unit            String?
+  target          Decimal?          @db.Decimal(18, 4)
+  trend           String            @default("neutral")
+  variancePercent Decimal?          @db.Decimal(8, 2)
+  status          String            @default("ON_TRACK")
+  period          String
+  ownerRole       String?
+  sortOrder       Int               @default(0)
+  metadata        Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, audience, code, period])
+  @@index([organizationId, audience, sortOrder], map: "executive_kpis_org_audience_sort_idx")
+  @@map("executive_kpis")
+}
+
+model ExecutiveForecast {
+  id             String                @id @default(cuid())
+  organizationId String
+  audience       ExecutiveAudience
+  forecastNumber String
+  title          String
+  metric         String
+  horizon        String
+  baselineValue  Decimal               @db.Decimal(18, 4)
+  predictedValue Decimal               @db.Decimal(18, 4)
+  confidence     Decimal?              @db.Decimal(5, 2)
+  scenario       String
+  driverSummary  String
+  riskLevel      OperationRiskSeverity @default(MEDIUM)
+  metadata       Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, forecastNumber])
+  @@index([organizationId, audience, riskLevel], map: "executive_forecasts_org_audience_risk_idx")
+  @@map("executive_forecasts")
+}
+
+model ExecutiveAnomaly {
+  id                String                @id @default(cuid())
+  organizationId    String
+  audience          ExecutiveAudience
+  sourceKey         String
+  source            String
+  title             String
+  description       String
+  severity          OperationRiskSeverity @default(MEDIUM)
+  metric            String
+  actualValue       Decimal?              @db.Decimal(18, 4)
+  expectedValue     Decimal?              @db.Decimal(18, 4)
+  variancePercent   Decimal?              @db.Decimal(8, 2)
+  detectedAt        DateTime              @default(now())
+  status            ExecutiveSignalStatus @default(OPEN)
+  recommendedAction String?
+  metadata          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, sourceKey])
+  @@index([organizationId, audience, severity, status], map: "executive_anomalies_org_audience_severity_idx")
+  @@map("executive_anomalies")
+}
+
+model ExecutiveCopilot {
+  id                 String                @id @default(cuid())
+  organizationId     String
+  audience           ExecutiveAudience
+  slug               String
+  name               String
+  role               String
+  prompt             String
+  summary            String
+  recommendedActions Json?
+  status             ExecutiveSignalStatus @default(OPEN)
+  confidence         Decimal?              @db.Decimal(5, 2)
+  lastRunAt          DateTime?
+  metadata           Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, audience, slug])
+  @@index([organizationId, audience, status], map: "executive_copilots_org_audience_status_idx")
+  @@map("executive_copilots")
+}
+
+model ExecutiveStrategicInsight {
+  id                String                @id @default(cuid())
+  organizationId    String
+  audience          ExecutiveAudience
+  sourceKey         String
+  title             String
+  narrative         String
+  impactArea        String
+  priority          OperationRiskSeverity @default(MEDIUM)
+  confidence        Decimal?              @db.Decimal(5, 2)
+  decisionWindow    String?
+  recommendedAction String?
+  status            ExecutiveSignalStatus @default(OPEN)
+  metadata          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, sourceKey])
+  @@index([organizationId, audience, priority, status], map: "exec_insights_org_audience_priority_idx")
+  @@map("executive_strategic_insights")
+}
+
+model BoardMisSnapshot {
+  id                String         @id @default(cuid())
+  organizationId    String
+  packNumber        String
+  period            String
+  title             String
+  status            BoardMisStatus @default(DRAFT)
+  revenue           Decimal        @db.Decimal(18, 2)
+  ebitda            Decimal        @db.Decimal(18, 2)
+  cashRunwayMonths  Decimal?       @db.Decimal(8, 2)
+  riskIndex         Int            @default(0)
+  kpiSummary        Json?
+  governanceSummary String
+  createdByRole     String?
+  approvedAt        DateTime?
+  metadata          Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, packNumber])
+  @@index([organizationId, period, status], map: "board_mis_org_period_status_idx")
+  @@map("board_mis_snapshots")
 }
 
 model Invoice {
