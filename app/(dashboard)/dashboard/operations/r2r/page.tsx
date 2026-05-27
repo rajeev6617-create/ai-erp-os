@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { OperationModuleDashboard } from "@/components/operations/operation-module-dashboard";
+import { R2rRecordToReportDashboard } from "@/components/operations/r2r-record-to-report-dashboard";
 import { requireDashboardAuth } from "@/lib/auth/server";
 import { OPERATIONS_DASHBOARD_ROLES } from "@/lib/operations/access";
 import { getOperationModuleDashboard } from "@/lib/operations/data";
@@ -10,5 +10,5 @@ export default async function R2rOperationsPage() {
 
   if (!data) notFound();
 
-  return <OperationModuleDashboard data={data} />;
+  return <R2rRecordToReportDashboard data={data} />;
 }
