@@ -1,4 +1,5 @@
-export type OperationModuleSlug = "p2p" | "otc" | "r2r" | "users";
+export type OperationModuleSlug = "p2p" | "otc" | "r2r" | "crm" | "srm" | "users";
+export type OperationBackedModuleSlug = Exclude<OperationModuleSlug, "crm" | "srm">;
 
 export interface OperationModuleNavItem {
   slug: OperationModuleSlug;

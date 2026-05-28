@@ -388,6 +388,33 @@ async function seedCrmRecords(
     severity: "HIGH",
     confidence: 84.2,
   });
+
+  await seedInsight(prisma, organizationId, {
+    module: "CRM",
+    entityType: "customer",
+    title: "Customer churn risk",
+    description: "Apex Distribution has elevated outstanding exposure and delayed milestone acceptance activity.",
+    severity: "HIGH",
+    confidence: 87.4,
+  });
+
+  await seedInsight(prisma, organizationId, {
+    module: "CRM",
+    entityType: "sales_opportunity",
+    title: "Sales opportunity score",
+    description: "Orion Foods lead score and Northstar pipeline probability indicate a strong expansion motion.",
+    severity: "MEDIUM",
+    confidence: 82.1,
+  });
+
+  await seedInsight(prisma, organizationId, {
+    module: "CUSTOMER_PORTAL",
+    entityType: "customer_profitability",
+    title: "Customer profitability alert",
+    description: "Apex collection friction may reduce account profitability if the disputed milestone remains unresolved.",
+    severity: "MEDIUM",
+    confidence: 78.6,
+  });
 }
 
 async function seedSrmRecords(
@@ -469,6 +496,33 @@ async function seedSrmRecords(
     severity: "MEDIUM",
     confidence: 79.4,
   });
+
+  await seedInsight(prisma, organizationId, {
+    module: "SRM",
+    entityType: "vendor",
+    title: "Vendor reliability score",
+    description: "TechNova remains reliable, while Greenline delivery readiness is constrained by missing insurance evidence.",
+    severity: "MEDIUM",
+    confidence: 81.2,
+  });
+
+  await seedInsight(prisma, organizationId, {
+    module: "SRM",
+    entityType: "delivery_performance",
+    title: "Supplier delay prediction",
+    description: "Greenline logistics onboarding risk and open compliance ticket may delay dispatch readiness.",
+    severity: "HIGH",
+    confidence: 86.5,
+  });
+
+  await seedInsight(prisma, organizationId, {
+    module: "VENDOR_PORTAL",
+    entityType: "supplier_profitability",
+    title: "Supplier profitability alert",
+    description: "Shakti payment terms and document gaps may increase purchase cycle cost if onboarding stalls.",
+    severity: "MEDIUM",
+    confidence: 75.9,
+  });
 }
 
 async function seedTicket(
@@ -547,7 +601,11 @@ async function seedRelationshipAudit(
 ) {
   const events = [
     ["crm.lead.seeded", "crm", "CRM lead and pipeline seed completed"],
+    ["crm.customer.payment_risk.flagged", "crm", "Customer payment risk signal linked to collections and profitability review"],
+    ["crm.document.request.logged", "crm", "Customer invoice evidence request added to document tracking"],
     ["srm.vendor.onboarding.seeded", "srm", "SRM vendor onboarding seed completed"],
+    ["srm.vendor.documents.requested", "srm", "Vendor GST, bank, and insurance documents linked to onboarding review"],
+    ["srm.supplier.delay.predicted", "srm", "Supplier delay prediction linked to compliance evidence readiness"],
     ["portal.account.provisioned", "portal", "Customer and vendor portal accounts provisioned"],
   ] as const;
 

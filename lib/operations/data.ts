@@ -2,6 +2,7 @@ import type { OperationModuleCode } from "@/app/generated/prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import type {
   OperationFinanceSummary,
+  OperationBackedModuleSlug,
   OperationModuleDashboardData,
   OperationModuleNavItem,
   OperationModuleSlug,
@@ -10,12 +11,14 @@ import type {
 
 const MODULES: Array<{
   slug: OperationModuleSlug;
-  code: OperationModuleCode;
+  code?: OperationModuleCode;
   label: string;
 }> = [
   { slug: "p2p", code: "P2P", label: "P2P" },
   { slug: "otc", code: "OTC", label: "OTC" },
   { slug: "r2r", code: "R2R", label: "R2R" },
+  { slug: "crm", label: "CRM" },
+  { slug: "srm", label: "SRM" },
   { slug: "users", code: "USER_OPERATIONS", label: "Users" },
 ];
 
@@ -26,14 +29,18 @@ export const operationModuleNav: OperationModuleNavItem[] = MODULES.map((item) =
 }));
 
 export function operationCodeForSlug(
-  slug: OperationModuleSlug,
+  slug: OperationBackedModuleSlug,
 ): OperationModuleCode {
-  return MODULES.find((item) => item.slug === slug)?.code ?? "P2P";
+  const code = MODULES.find((item) => item.slug === slug)?.code;
+  if (!code) {
+    throw new Error(`No operation module code configured for ${slug}`);
+  }
+  return code;
 }
 
 export async function getOperationModuleDashboard(
   organizationId: string,
-  slug: OperationModuleSlug,
+  slug: OperationBackedModuleSlug,
 ): Promise<OperationModuleDashboardData | null> {
   const code = operationCodeForSlug(slug);
   const operationModule = await prisma.operationModule.findFirst({
