@@ -7,11 +7,14 @@ import type {
   CfoAiAgentResult,
   ComplianceAiAgentResult,
 } from "@/lib/ai-agents/types";
+import { getOperationsCommandCenterData } from "@/lib/operations/command-center-data";
+import type { OperationsCommandCenterData } from "@/lib/operations/command-center-data";
 import { getOperationsDashboard } from "@/lib/workflows/queries";
 import type { OperationsDashboardData } from "@/lib/workflows/types";
 
 export interface AiDashboardData {
   operations: OperationsDashboardData;
+  controlTower: OperationsCommandCenterData;
   agentOverview: {
     totalAgents: number;
     activeAgents: number;
@@ -60,6 +63,7 @@ export async function getAiDashboard(
 
   const [
     operations,
+    controlTower,
     agents,
     actionRows,
     recentActions,
@@ -68,6 +72,7 @@ export async function getAiDashboard(
     complianceAgent,
   ] = await Promise.all([
     getOperationsDashboard(organizationId),
+    getOperationsCommandCenterData(organizationId),
     prisma.aiAgent.findMany({
       where: { organizationId, deletedAt: null },
       include: { actions: { select: { id: true } } },
@@ -101,6 +106,7 @@ export async function getAiDashboard(
 
   return {
     operations,
+    controlTower,
     agentOverview: {
       totalAgents: agents.length,
       activeAgents: agents.filter((agent) => agent.status === "ACTIVE").length,

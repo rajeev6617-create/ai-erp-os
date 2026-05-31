@@ -11,6 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
 import { AiAgentWidgets } from "@/components/dashboard/ai-agent-widgets";
+import { EnterpriseAiControlTower } from "@/components/dashboard/enterprise-ai-control-tower";
 import { AiWorkflowPanel } from "@/components/workflows/ai-workflow-panel";
 import { cn } from "@/lib/utils/cn";
 import type { AiDashboardData } from "@/lib/dashboard/ai";
@@ -72,6 +73,8 @@ export function AiDashboard({ data }: { data: AiDashboardData }) {
         auditor={data.auditorAgent}
         compliance={data.complianceAgent}
       />
+
+      <EnterpriseAiControlTower data={data.controlTower} />
 
       <section className="grid gap-4 xl:grid-cols-12">
         <div className="space-y-4 xl:col-span-7">
