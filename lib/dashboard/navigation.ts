@@ -15,6 +15,7 @@ import {
   Handshake,
   Store,
   PackageSearch,
+  Warehouse,
   Factory,
   BriefcaseBusiness,
   type LucideIcon,
@@ -95,8 +96,21 @@ export const mainNavigation: NavItem[] = [
   },
   {
     label: "Inventory",
-    href: "/dashboard/inventory",
+    href: "/dashboard/operations/inventory",
     icon: PackageSearch,
+    roles: [
+      "super-admin",
+      "organization-admin",
+      "manager",
+      "cfo",
+      "finance-manager",
+      "auditor",
+    ],
+  },
+  {
+    label: "Warehouse",
+    href: "/dashboard/operations/warehouse",
+    icon: Warehouse,
     roles: [
       "super-admin",
       "organization-admin",

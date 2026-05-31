@@ -138,7 +138,7 @@ export async function getOperationsCommandCenterData(
       relationshipSignal("SRM", "/dashboard/operations/srm", insight),
     ),
     ...inventory.alerts.map((alert) =>
-      supplyChainSignal("Inventory", "/dashboard/inventory", alert),
+      supplyChainSignal("Inventory", "/dashboard/operations/inventory", alert),
     ),
     ...production.alerts.map((alert) =>
       supplyChainSignal("Production", "/dashboard/production", alert),
@@ -198,7 +198,7 @@ export async function getOperationsCommandCenterData(
       relationshipAudit("SRM", "/dashboard/operations/srm", event),
     ),
     ...inventory.auditLogs.map((event) =>
-      supplyChainAudit("Inventory", "/dashboard/inventory", event),
+      supplyChainAudit("Inventory", "/dashboard/operations/inventory", event),
     ),
     ...production.auditLogs.map((event) =>
       supplyChainAudit("Production", "/dashboard/production", event),
@@ -234,7 +234,7 @@ export async function getOperationsCommandCenterData(
     relationshipSummary(
       "inventory",
       "Inventory & Warehouse",
-      "/dashboard/inventory",
+      "/dashboard/operations/inventory",
       "Warehouse stock, GRNs, dispatches, reorder controls, and valuation.",
       inventory.analytics.reorderItemCount +
         inventory.analytics.qualityHoldCount +
