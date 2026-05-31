@@ -141,7 +141,7 @@ export async function getOperationsCommandCenterData(
       supplyChainSignal("Inventory", "/dashboard/operations/inventory", alert),
     ),
     ...production.alerts.map((alert) =>
-      supplyChainSignal("Production", "/dashboard/production", alert),
+      supplyChainSignal("Production", "/dashboard/operations/production", alert),
     ),
   ].sort(signalSort);
 
@@ -201,7 +201,7 @@ export async function getOperationsCommandCenterData(
       supplyChainAudit("Inventory", "/dashboard/operations/inventory", event),
     ),
     ...production.auditLogs.map((event) =>
-      supplyChainAudit("Production", "/dashboard/production", event),
+      supplyChainAudit("Production", "/dashboard/operations/production", event),
     ),
   ].sort((left, right) => compareIso(right.createdAt, left.createdAt));
 
@@ -246,7 +246,7 @@ export async function getOperationsCommandCenterData(
     relationshipSummary(
       "production",
       "Production & Quality",
-      "/dashboard/production",
+      "/dashboard/operations/production",
       "Production plans, BOM governance, quality checks, and capacity risk.",
       production.productionPlans.filter((plan) => !["COMPLETED", "CANCELLED"].includes(plan.status)).length +
         production.qualityChecks.filter((check) => ["FAILED", "HOLD"].includes(check.status)).length,
@@ -284,7 +284,7 @@ export async function getOperationsCommandCenterData(
       "plan-to-fulfill",
       "Plan-to-fulfill control chain",
       "Inventory demand -> production plan -> BOM -> quality control -> dispatch readiness",
-      "/dashboard/production",
+      "/dashboard/operations/production",
       moduleStatus(
         inventory.alerts.filter((item) => isEscalated(item.severity)).length +
           production.alerts.filter((item) => isEscalated(item.severity)).length,

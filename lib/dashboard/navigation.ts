@@ -17,6 +17,7 @@ import {
   PackageSearch,
   Warehouse,
   Factory,
+  ClipboardCheck,
   BriefcaseBusiness,
   type LucideIcon,
 } from "lucide-react";
@@ -70,7 +71,7 @@ export const mainNavigation: NavItem[] = [
   },
   {
     label: "CRM",
-    href: "/dashboard/crm",
+    href: "/dashboard/operations/crm",
     icon: Handshake,
     roles: [
       "super-admin",
@@ -83,7 +84,7 @@ export const mainNavigation: NavItem[] = [
   },
   {
     label: "SRM",
-    href: "/dashboard/srm",
+    href: "/dashboard/operations/srm",
     icon: Store,
     roles: [
       "super-admin",
@@ -122,8 +123,21 @@ export const mainNavigation: NavItem[] = [
   },
   {
     label: "Production",
-    href: "/dashboard/production",
+    href: "/dashboard/operations/production",
     icon: Factory,
+    roles: [
+      "super-admin",
+      "organization-admin",
+      "manager",
+      "cfo",
+      "finance-manager",
+      "auditor",
+    ],
+  },
+  {
+    label: "Quality",
+    href: "/dashboard/operations/quality",
+    icon: ClipboardCheck,
     roles: [
       "super-admin",
       "organization-admin",

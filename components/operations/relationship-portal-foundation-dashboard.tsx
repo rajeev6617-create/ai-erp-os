@@ -1,5 +1,6 @@
 import Link from "next/link";
 import {
+  Activity,
   Banknote,
   Bot,
   BriefcaseBusiness,
@@ -26,6 +27,13 @@ import type {
   CrmOperationsPortalData,
   SrmOperationsPortalData,
 } from "@/lib/operations/relationship-portal-data";
+import type {
+  CrmSalesActivityRecord,
+  PurchaseHistoryRecord,
+  SupplierDeliveryRecord,
+  VendorComplianceDocument,
+  VendorPerformanceRecord,
+} from "@/lib/operations/relationship-enterprise-data";
 import type {
   OperationAuditEvent,
   OperationModuleDashboardData,
@@ -60,7 +68,7 @@ export function CrmOperationsPortalDashboard({
       <RelationshipOperationsHeader
         activeSlug="crm"
         eyebrow="Enterprise relationship operations"
-        title="CRM portal foundation"
+        title="ASTRA CRM Customer Relationships"
         description="Customer master, lead management, sales pipeline, payment risk, profitability intelligence, audit, workflow, and finance linkage."
       />
 
@@ -73,21 +81,21 @@ export function CrmOperationsPortalDashboard({
           icon={Users}
         />
         <StatCard
-          label="Leads"
+          label="Active leads"
           value={String(metrics.openLeads)}
           change={`${metrics.highScoreLeads} high-score leads`}
           trend="neutral"
           icon={Handshake}
         />
         <StatCard
-          label="Sales pipeline"
+          label="Opportunity value"
           value={formatInr(metrics.pipeline)}
           change={`${formatInr(metrics.weightedPipeline)} weighted`}
           trend="up"
           icon={BriefcaseBusiness}
         />
         <StatCard
-          label="Customer payment risk"
+          label="High-risk customers"
           value={String(customerRisk.length)}
           change={`${formatInr(metrics.paymentRiskExposure)} outstanding exposure`}
           trend={customerRisk.length > 0 ? "down" : "up"}
@@ -101,11 +109,11 @@ export function CrmOperationsPortalDashboard({
           icon={IndianRupee}
         />
         <StatCard
-          label="Customer activity timeline"
-          value={String(data.crm.auditLogs.length)}
-          change="Portal, CRM, and workflow events"
-          trend="neutral"
-          icon={Timer}
+          label="Top customers"
+          value={String(metrics.topCustomers)}
+          change={`${metrics.topCustomerName} leads account value`}
+          trend="up"
+          icon={Users}
         />
         <StatCard
           label="Workflow approvals"
@@ -145,6 +153,15 @@ export function CrmOperationsPortalDashboard({
             opportunities={data.crm.opportunities}
             customers={data.crm.customers}
           />
+        </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-12">
+        <div className="xl:col-span-7">
+          <SalesActivitiesCard activities={data.enterprise.crmActivities} />
+        </div>
+        <div className="xl:col-span-5">
+          <CustomerSupportTicketsCard tickets={data.crm.tickets} />
         </div>
       </section>
 
@@ -211,15 +228,15 @@ export function SrmOperationsPortalDashboard({
       <RelationshipOperationsHeader
         activeSlug="srm"
         eyebrow="Enterprise relationship operations"
-        title="SRM portal foundation"
+        title="ASTRA SRM Supplier Relationships"
         description="Vendor master, onboarding, quotation tracking, purchase performance, delivery performance, compliance documents, workflow, audit, and AI risk intelligence."
       />
 
       <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
-          label="Vendor master"
-          value={String(data.srm.vendors.length)}
-          change={`${data.srm.vendors.filter((vendor) => vendor.status === "ACTIVE").length} active vendors`}
+          label="Active vendors"
+          value={String(metrics.activeVendors)}
+          change={`${data.srm.vendors.length} vendor master records`}
           trend="up"
           icon={Store}
         />
@@ -252,8 +269,8 @@ export function SrmOperationsPortalDashboard({
           icon={IndianRupee}
         />
         <StatCard
-          label="Delivery performance"
-          value={String(metrics.deliveryExceptions)}
+          label="Delayed supplier deliveries"
+          value={String(metrics.delayedSupplierDeliveries)}
           change={`${formatInr(metrics.deliveryExposure)} delivery exposure`}
           trend={metrics.deliveryExceptions > 0 ? "down" : "up"}
           icon={Truck}
@@ -292,6 +309,24 @@ export function SrmOperationsPortalDashboard({
         </div>
         <div className="xl:col-span-4">
           <DeliveryPerformanceCard operations={data.operations} />
+        </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-12">
+        <div className="xl:col-span-6">
+          <VendorPerformanceScoreCard records={data.enterprise.vendorPerformance} />
+        </div>
+        <div className="xl:col-span-6">
+          <SupplierDeliveryTrackingCard records={data.enterprise.supplierDeliveries} />
+        </div>
+      </section>
+
+      <section className="grid gap-4 xl:grid-cols-12">
+        <div className="xl:col-span-7">
+          <PurchaseHistoryCard records={data.enterprise.purchaseHistory} />
+        </div>
+        <div className="xl:col-span-5">
+          <VendorComplianceEvidenceCard documents={data.enterprise.vendorDocuments} />
         </div>
       </section>
 
@@ -584,6 +619,60 @@ function CustomerProfitabilityCard({
   );
 }
 
+function SalesActivitiesCard({ activities }: { activities: CrmSalesActivityRecord[] }) {
+  return (
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Activity className="h-4 w-4 text-primary" />
+          Sales activities
+        </CardTitle>
+        <CardDescription>Customer meetings, proposals, collection actions, and discovery follow-ups</CardDescription>
+      </CardHeader>
+      <CardContent className="grid gap-3 md:grid-cols-2">
+        {activities.map((activity) => (
+          <div key={activity.id} className="rounded-lg border border-border p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <p className="text-sm font-semibold">{activity.subject}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {activity.activityNumber} | {formatStatus(activity.activityType)}
+                </p>
+              </div>
+              <StatusBadge status={activity.status} />
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {activity.customerName} | {activity.linkedReference} | Owner {activity.owner}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">Due {formatDate(activity.dueAt)}</p>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function CustomerSupportTicketsCard({ tickets }: { tickets: SupportTicketView[] }) {
+  return (
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileText className="h-4 w-4 text-primary" />
+          Customer support tickets
+        </CardTitle>
+        <CardDescription>Portal requests, service issues, collection blockers, and SLA ownership</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {tickets.length === 0 ? (
+          <EmptyState icon={FileText} title="No support tickets" description="Customer support activity will appear here." />
+        ) : (
+          tickets.map((ticket) => <TicketLine key={ticket.id} ticket={ticket} />)
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
 function VendorMasterCard({ vendors }: { vendors: VendorView[] }) {
   return (
     <Card className="h-full">
@@ -740,6 +829,153 @@ function DeliveryPerformanceCard({
         ) : (
           deliveryRecords.map((record) => <OperationRecordLine key={record.id} record={record} />)
         )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function VendorPerformanceScoreCard({ records }: { records: VendorPerformanceRecord[] }) {
+  return (
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ShieldCheck className="h-4 w-4 text-primary" />
+          Vendor performance score
+        </CardTitle>
+        <CardDescription>Reliability, acceptance, lead time, and supplier operating tier</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {records.map((record) => (
+          <div key={record.id} className="rounded-lg border border-border p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold">{record.vendorName}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {record.vendorCode} | {record.category}
+                </p>
+              </div>
+              <Badge variant={statusVariant(record.status)}>{record.performanceScore}/100</Badge>
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              OTD {record.onTimeDeliveryPercent}% | Quality {record.qualityAcceptancePercent}% | Lead time{" "}
+              {record.averageLeadTimeDays} days
+            </p>
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function SupplierDeliveryTrackingCard({ records }: { records: SupplierDeliveryRecord[] }) {
+  return (
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <Truck className="h-4 w-4 text-primary" />
+          Supplier delivery performance
+        </CardTitle>
+        <CardDescription>ASN status, delayed receipts, compliance blocks, and purchase exposure</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {records.map((record) => (
+          <div key={record.id} className="rounded-lg border border-border p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold">{record.vendorName}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {record.deliveryNumber} | {record.poNumber}
+                </p>
+              </div>
+              <StatusBadge status={record.status} />
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              {record.material} | {formatInr(record.value)} | Due {formatDate(record.expectedAt)}
+            </p>
+            {record.delayedDays > 0 ? (
+              <p className="mt-1 text-xs font-medium text-destructive">{record.delayedDays} day delay</p>
+            ) : null}
+          </div>
+        ))}
+      </CardContent>
+    </Card>
+  );
+}
+
+function PurchaseHistoryCard({ records }: { records: PurchaseHistoryRecord[] }) {
+  return (
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ReceiptText className="h-4 w-4 text-primary" />
+          Purchase history
+        </CardTitle>
+        <CardDescription>Supplier purchase orders, receipts, invoice matching, and historical value</CardDescription>
+      </CardHeader>
+      <CardContent className="overflow-x-auto">
+        <table className="w-full min-w-[720px] text-left text-xs">
+          <thead className="text-muted-foreground">
+            <tr className="border-b border-border">
+              <th className="pb-2 pr-4 font-medium">Purchase order</th>
+              <th className="pb-2 pr-4 font-medium">Vendor</th>
+              <th className="pb-2 pr-4 font-medium">Category</th>
+              <th className="pb-2 pr-4 text-right font-medium">Value</th>
+              <th className="pb-2 pr-4 font-medium">Receipt</th>
+              <th className="pb-2 font-medium">Invoice</th>
+            </tr>
+          </thead>
+          <tbody>
+            {records.map((record) => (
+              <tr key={record.id} className="border-b border-border/70 last:border-0">
+                <td className="py-3 pr-4">
+                  <p className="font-semibold">{record.poNumber}</p>
+                  <p className="mt-1 text-muted-foreground">{formatDate(record.orderedAt)}</p>
+                </td>
+                <td className="py-3 pr-4">{record.vendorName}</td>
+                <td className="py-3 pr-4 text-muted-foreground">{record.category}</td>
+                <td className="py-3 pr-4 text-right font-medium">{formatInr(record.amount)}</td>
+                <td className="py-3 pr-4">
+                  <StatusBadge status={record.receiptStatus} />
+                </td>
+                <td className="py-3">
+                  <StatusBadge status={record.invoiceStatus} />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </CardContent>
+    </Card>
+  );
+}
+
+function VendorComplianceEvidenceCard({ documents }: { documents: VendorComplianceDocument[] }) {
+  return (
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <FileCheck2 className="h-4 w-4 text-primary" />
+          Vendor compliance documents
+        </CardTitle>
+        <CardDescription>GST, insurance, bank validation, expiry, and evidence ownership</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {documents.map((document) => (
+          <div key={document.id} className="rounded-lg border border-border p-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="text-sm font-semibold">{document.vendorName}</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {document.documentNumber} | {formatStatus(document.documentType)}
+                </p>
+              </div>
+              <StatusBadge status={document.status} />
+            </div>
+            <p className="mt-2 text-xs text-muted-foreground">
+              Valid until {formatDate(document.validUntil)} | Owner {document.ownerRole}
+            </p>
+          </div>
+        ))}
       </CardContent>
     </Card>
   );
@@ -1149,6 +1385,10 @@ function buildCrmMetrics(data: CrmOperationsPortalData) {
     pipeline,
     weightedPipeline,
     customerOutstanding,
+    topCustomers: data.enterprise.customerProfitability.filter((customer) => customer.revenue >= 5000000).length,
+    topCustomerName:
+      data.enterprise.customerProfitability.slice().sort((left, right) => right.revenue - left.revenue).at(0)
+        ?.customerName ?? "No customer",
     paymentRiskExposure: data.crm.customers.filter(isCustomerPaymentRisk).reduce((sum, customer) => sum + customer.outstandingAmount, 0),
     profitabilityBase: weightedPipeline - customerOutstanding * 0.05,
     profitabilityAlerts: data.crm.insights.filter((insight) =>
@@ -1174,6 +1414,7 @@ function buildSrmMetrics(data: SrmOperationsPortalData) {
   });
 
   return {
+    activeVendors: data.srm.vendors.filter((vendor) => vendor.status === "ACTIVE").length,
     activeOnboardings: data.srm.onboardings.filter((item) => !["APPROVED", "REJECTED"].includes(item.status)).length,
     highRiskOnboardings: data.srm.onboardings.filter((item) => item.riskScore >= 75).length,
     quotationRecords: quotation.length,
@@ -1182,6 +1423,7 @@ function buildSrmMetrics(data: SrmOperationsPortalData) {
     purchaseValue: sumRecords(purchaseRecords) + (data.operations?.financeSummary.outflow ?? 0),
     openPurchaseRecords: purchaseRecords.length,
     deliveryExceptions: delivery.filter((record) => ["BLOCKED", "EXCEPTION", "OPEN"].includes(record.status)).length,
+    delayedSupplierDeliveries: data.enterprise.supplierDeliveries.filter((record) => record.status !== "ON_TRACK").length,
     deliveryExposure: sumRecords(delivery),
     complianceDocuments:
       data.srm.onboardings.filter((item) =>
@@ -1189,7 +1431,8 @@ function buildSrmMetrics(data: SrmOperationsPortalData) {
       ).length +
       data.srm.tickets.filter((ticket) =>
         includesAny(`${ticket.subject} ${ticket.description ?? ""}`, ["certificate", "bank", "document", "insurance", "validation"]),
-      ).length,
+      ).length +
+      data.enterprise.vendorDocuments.length,
     aiEscalations: data.srm.insights.filter((insight) => HIGH_PRIORITY.has(insight.severity)).length,
   };
 }
@@ -1218,13 +1461,13 @@ function sumRecords(records: OperationRecord[]): number {
 }
 
 function statusVariant(status: string): "default" | "success" | "warning" | "danger" | "info" {
-  if (["ACTIVE", "CONVERTED", "WON", "APPROVED", "COMPLETED", "RESOLVED", "CLOSED"].includes(status)) {
+  if (["ACTIVE", "CONVERTED", "WON", "APPROVED", "COMPLETED", "RESOLVED", "CLOSED", "HEALTHY", "MATCHED", "ON_TRACK", "PREFERRED", "RECEIVED", "VALID"].includes(status)) {
     return "success";
   }
-  if (["WAITING_APPROVAL", "QUALIFIED", "PROPOSAL", "NEGOTIATION", "UNDER_REVIEW", "IN_PROGRESS", "OPEN", "NURTURING", "ONBOARDING"].includes(status)) {
+  if (["ATTENTION", "DELAYED", "EXPIRING", "MARGIN_WATCH", "PENDING", "REVIEW_PENDING", "SCHEDULED", "VALIDATION_PENDING", "WAITING_APPROVAL", "QUALIFIED", "PROPOSAL", "NEGOTIATION", "UNDER_REVIEW", "IN_PROGRESS", "OPEN", "NURTURING", "ONBOARDING", "WATCH"].includes(status)) {
     return "warning";
   }
-  if (["BLOCKED", "EXCEPTION", "LOST", "REJECTED", "CRITICAL", "HIGH"].includes(status)) return "danger";
+  if (["BLOCKED", "COMPLIANCE_BLOCK", "EXCEPTION", "LOST", "QUALITY_HOLD", "REJECTED", "RISK_REVIEW", "CRITICAL", "HIGH"].includes(status)) return "danger";
   return "info";
 }
 

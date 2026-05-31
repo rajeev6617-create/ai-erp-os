@@ -1,4 +1,8 @@
 import { getOperationModuleDashboard } from "@/lib/operations/data";
+import {
+  getRelationshipEnterpriseDemoData,
+  type RelationshipEnterpriseDemoData,
+} from "@/lib/operations/relationship-enterprise-data";
 import type { OperationModuleDashboardData } from "@/lib/operations/types";
 import { getCrmDashboard, getSrmDashboard } from "@/lib/relationships/data";
 import type { CrmDashboardData, SrmDashboardData } from "@/lib/relationships/types";
@@ -6,11 +10,13 @@ import type { CrmDashboardData, SrmDashboardData } from "@/lib/relationships/typ
 export interface CrmOperationsPortalData {
   crm: CrmDashboardData;
   operations: OperationModuleDashboardData | null;
+  enterprise: RelationshipEnterpriseDemoData;
 }
 
 export interface SrmOperationsPortalData {
   srm: SrmDashboardData;
   operations: OperationModuleDashboardData | null;
+  enterprise: RelationshipEnterpriseDemoData;
 }
 
 export async function getCrmOperationsPortalData(
@@ -21,7 +27,7 @@ export async function getCrmOperationsPortalData(
     getOperationModuleDashboard(organizationId, "otc"),
   ]);
 
-  return { crm, operations };
+  return { crm, operations, enterprise: getRelationshipEnterpriseDemoData() };
 }
 
 export async function getSrmOperationsPortalData(
@@ -32,5 +38,5 @@ export async function getSrmOperationsPortalData(
     getOperationModuleDashboard(organizationId, "p2p"),
   ]);
 
-  return { srm, operations };
+  return { srm, operations, enterprise: getRelationshipEnterpriseDemoData() };
 }
