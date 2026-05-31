@@ -5,6 +5,7 @@ import type {
   BomView,
   DispatchView,
   GoodsReceiptView,
+  InventoryFinanceImpact,
   InventoryDashboardData,
   InventoryItemView,
   ProductionDashboardData,
@@ -13,6 +14,8 @@ import type {
   StockMovementView,
   SupplyChainAiAlertView,
   SupplyChainAuditView,
+  WarehouseApprovalView,
+  WarehouseWorkflowStageView,
   WarehouseView,
 } from "@/lib/supply-chain/types";
 
@@ -99,6 +102,10 @@ export async function getInventoryDashboard(
   ]);
 
   const mappedItems = items.map(mapInventoryItem);
+  const mappedMovements = movements.map(mapStockMovement);
+  const mappedGrns = grns.map(mapGoodsReceipt);
+  const mappedDispatches = dispatches.map(mapDispatch);
+  const mappedQualityChecks = qualityChecks.map(mapQualityCheck);
   const analytics = {
     stockValue: mappedItems.reduce(
       (sum, item) => sum + item.onHandStock * (item.standardCost ?? 0),
@@ -112,6 +119,12 @@ export async function getInventoryDashboard(
     qualityHoldCount: grns.filter((item) => item.status === "QUALITY_HOLD").length,
     dispatchExceptionCount: dispatches.filter((item) => item.status === "EXCEPTION").length,
   };
+  const financeImpact = buildInventoryFinanceImpact(
+    mappedItems,
+    mappedMovements,
+    mappedGrns,
+    mappedDispatches,
+  );
 
   return {
     stats: [
@@ -141,14 +154,206 @@ export async function getInventoryDashboard(
       },
     ],
     analytics,
+    workflowStages: buildWarehouseWorkflowStages(
+      mappedItems,
+      mappedMovements,
+      mappedGrns,
+      mappedDispatches,
+      mappedQualityChecks,
+    ),
+    approvals: buildWarehouseApprovals(
+      warehouses.map(mapWarehouse),
+      mappedMovements,
+      mappedGrns,
+      mappedDispatches,
+    ),
+    financeImpact,
     warehouses: warehouses.map(mapWarehouse),
     items: mappedItems,
-    movements: movements.map(mapStockMovement),
-    grns: grns.map(mapGoodsReceipt),
-    dispatches: dispatches.map(mapDispatch),
-    qualityChecks: qualityChecks.map(mapQualityCheck),
+    movements: mappedMovements,
+    grns: mappedGrns,
+    dispatches: mappedDispatches,
+    qualityChecks: mappedQualityChecks,
     alerts: alerts.map(mapAiAlert).sort(alertSort),
     auditLogs: auditLogs.map(mapAuditLog),
+  };
+}
+
+function buildWarehouseWorkflowStages(
+  items: InventoryItemView[],
+  movements: StockMovementView[],
+  grns: GoodsReceiptView[],
+  dispatches: DispatchView[],
+  qualityChecks: QualityCheckView[],
+): WarehouseWorkflowStageView[] {
+  const receivingOpen = grns.filter((item) => !["POSTED", "CANCELLED"].includes(item.status));
+  const qualityOpen = qualityChecks.filter((item) =>
+    ["PENDING", "HOLD", "FAILED", "REWORK"].includes(item.status),
+  );
+  const stockPostingOpen = movements.filter((item) => ["DRAFT", "BLOCKED"].includes(item.status));
+  const replenishmentOpen = items.filter(
+    (item) => item.availableStock <= Math.max(item.reorderPoint, item.safetyStock),
+  );
+  const pickingOpen = dispatches.filter((item) =>
+    ["PLANNED", "PICKING", "PACKED"].includes(item.status),
+  );
+  const dispatchExceptions = dispatches.filter((item) => item.status === "EXCEPTION");
+
+  return [
+    workflowStage(
+      "receiving",
+      "Inbound receiving",
+      "PO-linked receipts and GRN registration",
+      "warehouse manager",
+      receivingOpen.length,
+      receivingOpen.some((item) => item.status === "QUALITY_HOLD"),
+    ),
+    workflowStage(
+      "quality",
+      "Quality gate",
+      "Incoming inspection, holds, and release decisions",
+      "quality manager",
+      qualityOpen.length,
+      qualityOpen.some((item) => ["HOLD", "FAILED"].includes(item.status)),
+    ),
+    workflowStage(
+      "posting",
+      "Stock posting",
+      "Put-away confirmation and inventory ledger posting",
+      "inventory controller",
+      stockPostingOpen.length,
+      stockPostingOpen.some((item) => item.status === "BLOCKED"),
+    ),
+    workflowStage(
+      "replenishment",
+      "Replenishment",
+      "Safety stock, reorder point, and allocation review",
+      "inventory planner",
+      replenishmentOpen.length,
+      false,
+    ),
+    workflowStage(
+      "pick-pack",
+      "Pick and pack",
+      "Outbound reservation, picking, and packing readiness",
+      "dispatch manager",
+      pickingOpen.length,
+      false,
+    ),
+    workflowStage(
+      "dispatch",
+      "Dispatch and delivery",
+      "Carrier handoff, customer SLA, and delivery exceptions",
+      "dispatch manager",
+      dispatchExceptions.length,
+      dispatchExceptions.length > 0,
+    ),
+  ];
+}
+
+function workflowStage(
+  key: string,
+  label: string,
+  description: string,
+  ownerRole: string,
+  openItems: number,
+  blocked: boolean,
+): WarehouseWorkflowStageView {
+  return {
+    key,
+    label,
+    description,
+    ownerRole,
+    openItems,
+    status: blocked ? "BLOCKED" : openItems > 0 ? "ATTENTION" : "HEALTHY",
+  };
+}
+
+function buildWarehouseApprovals(
+  warehouses: WarehouseView[],
+  movements: StockMovementView[],
+  grns: GoodsReceiptView[],
+  dispatches: DispatchView[],
+): WarehouseApprovalView[] {
+  return [
+    ...grns
+      .filter((item) => item.status === "QUALITY_HOLD")
+      .map((item) => ({
+        id: `grn:${item.id}`,
+        title: "Release inbound quality hold",
+        reference: item.grnNumber,
+        stage: "Quality gate",
+        ownerRole: item.ownerRole ?? "quality manager",
+        status: "BLOCKED" as const,
+        impact: `${formatCompact(item.totalQuantity)} units awaiting release`,
+      })),
+    ...movements
+      .filter((item) => item.status === "BLOCKED")
+      .map((item) => ({
+        id: `movement:${item.id}`,
+        title: "Review blocked stock posting",
+        reference: item.movementNumber,
+        stage: "Stock posting",
+        ownerRole: "inventory controller",
+        status: "BLOCKED" as const,
+        impact: `${formatCompact(item.quantity)} units blocked from posting`,
+      })),
+    ...dispatches
+      .filter((item) => item.status === "EXCEPTION")
+      .map((item) => ({
+        id: `dispatch:${item.id}`,
+        title: "Resolve dispatch exception",
+        reference: item.dispatchNumber,
+        stage: "Dispatch and delivery",
+        ownerRole: item.ownerRole ?? "dispatch manager",
+        status: "PENDING" as const,
+        impact: `${formatCompact(item.totalQuantity)} units exposed to SLA delay`,
+      })),
+    ...warehouses
+      .filter((item) => item.status === "HOLD")
+      .map((item) => ({
+        id: `warehouse:${item.id}`,
+        title: "Review warehouse operating hold",
+        reference: item.code,
+        stage: "Warehouse control",
+        ownerRole: item.managerRole ?? "operations manager",
+        status: "PENDING" as const,
+        impact: `${formatPercent(item.utilizationPercent)} utilization under review`,
+      })),
+  ].slice(0, 8);
+}
+
+function buildInventoryFinanceImpact(
+  items: InventoryItemView[],
+  movements: StockMovementView[],
+  grns: GoodsReceiptView[],
+  dispatches: DispatchView[],
+): InventoryFinanceImpact {
+  const heldGrns = new Set(
+    grns.filter((item) => item.status === "QUALITY_HOLD").map((item) => item.grnNumber),
+  );
+  const finishedGoodsCost =
+    items.find((item) => item.itemType === "FINISHED_GOOD")?.standardCost ?? 0;
+
+  return {
+    stockValue: items.reduce(
+      (sum, item) => sum + item.onHandStock * (item.standardCost ?? 0),
+      0,
+    ),
+    reservedStockValue: items.reduce(
+      (sum, item) => sum + item.reservedStock * (item.standardCost ?? 0),
+      0,
+    ),
+    movementValue: movements.reduce(
+      (sum, item) => sum + item.quantity * (item.unitCost ?? 0),
+      0,
+    ),
+    blockedReceiptValue: movements
+      .filter((item) => item.referenceNumber != null && heldGrns.has(item.referenceNumber))
+      .reduce((sum, item) => sum + item.quantity * (item.unitCost ?? 0), 0),
+    dispatchExposure: dispatches
+      .filter((item) => item.status !== "DELIVERED")
+      .reduce((sum, item) => sum + item.totalQuantity * finishedGoodsCost, 0),
   };
 }
 
@@ -580,4 +785,8 @@ function formatCompact(value: number): string {
     maximumFractionDigits: 1,
     notation: Math.abs(value) >= 1000 ? "compact" : "standard",
   }).format(value);
+}
+
+function formatPercent(value: number | null): string {
+  return value == null ? "n/a" : `${Math.round(value)}%`;
 }

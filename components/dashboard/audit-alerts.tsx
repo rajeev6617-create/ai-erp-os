@@ -1,6 +1,6 @@
 import { AlertCircle, AlertTriangle, Info } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { auditAlerts } from "@/lib/dashboard/mock-data";
+import type { HomeDashboardSnapshot } from "@/lib/dashboard/home";
 import { cn } from "@/lib/utils/cn";
 
 const config = {
@@ -18,7 +18,11 @@ const config = {
   },
 };
 
-export function AuditAlerts() {
+export function AuditAlerts({
+  alerts,
+}: {
+  alerts: HomeDashboardSnapshot["auditAlerts"];
+}) {
   return (
     <Card className="h-full">
       <CardHeader>
@@ -26,7 +30,10 @@ export function AuditAlerts() {
         <CardDescription>Compliance and access monitoring</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
-        {auditAlerts.map((alert) => {
+        {alerts.length === 0 && (
+          <p className="text-sm text-muted-foreground">No recent audit events.</p>
+        )}
+        {alerts.map((alert) => {
           const { icon: Icon, className } = config[alert.severity];
           return (
             <div

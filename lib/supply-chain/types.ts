@@ -161,9 +161,39 @@ export interface InventoryAnalytics {
   dispatchExceptionCount: number;
 }
 
+export interface WarehouseWorkflowStageView {
+  key: string;
+  label: string;
+  description: string;
+  ownerRole: string;
+  status: "HEALTHY" | "ATTENTION" | "BLOCKED";
+  openItems: number;
+}
+
+export interface WarehouseApprovalView {
+  id: string;
+  title: string;
+  reference: string;
+  stage: string;
+  ownerRole: string;
+  status: "PENDING" | "BLOCKED";
+  impact: string;
+}
+
+export interface InventoryFinanceImpact {
+  stockValue: number;
+  reservedStockValue: number;
+  movementValue: number;
+  blockedReceiptValue: number;
+  dispatchExposure: number;
+}
+
 export interface InventoryDashboardData {
   stats: SupplyChainStat[];
   analytics: InventoryAnalytics;
+  workflowStages: WarehouseWorkflowStageView[];
+  approvals: WarehouseApprovalView[];
+  financeImpact: InventoryFinanceImpact;
   warehouses: WarehouseView[];
   items: InventoryItemView[];
   movements: StockMovementView[];

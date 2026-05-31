@@ -1,9 +1,9 @@
-"use client";
+import { HomeDashboardClient } from "@/app/(dashboard)/dashboard/home-dashboard-client";
+import { requireDashboardAuth } from "@/lib/auth/server";
+import { getHomeDashboardSnapshot } from "@/lib/dashboard/home";
 
-import { RoleDashboard } from "@/components/dashboard/role-dashboard";
-import { useDashboard } from "@/components/providers/dashboard-provider";
-
-export default function DashboardPage() {
-  const { user } = useDashboard();
-  return <RoleDashboard user={user} />;
+export default async function DashboardPage() {
+  const auth = await requireDashboardAuth();
+  const snapshot = await getHomeDashboardSnapshot(auth.organization.id);
+  return <HomeDashboardClient snapshot={snapshot} />;
 }

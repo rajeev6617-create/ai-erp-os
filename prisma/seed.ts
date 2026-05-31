@@ -9,8 +9,13 @@ import {
   UserStatus,
 } from "../app/generated/prisma/client";
 import { ROLE_ORG_ADMIN } from "../lib/auth/constants";
+import { seedComplianceData } from "./seed-compliance";
+import { seedConfigurationData } from "./seed-configuration";
+import { seedDocumentsData } from "./seed-documents";
+import { seedErpFinanceTransactions } from "./seed-erp-finance";
 import { seedFinanceData } from "./seed-finance";
 import { seedExecutiveIntelligence } from "./seed-executive-intelligence";
+import { seedIntegrationsData } from "./seed-integrations";
 import { seedOperationsData } from "./seed-operations";
 import { seedRelationshipPortals } from "./seed-relationships";
 import { seedSupplyChainData } from "./seed-supply-chain";
@@ -179,6 +184,17 @@ async function main() {
   await seedRelationshipPortals(prisma, organization.id, admin.id);
   await seedSupplyChainData(prisma, organization.id, admin.id);
   await seedExecutiveIntelligence(prisma, organization.id, admin.id);
+  await seedErpFinanceTransactions(prisma, organization.id, admin.id);
+  await seedComplianceData(prisma, organization.id, admin.id);
+  await seedDocumentsData(prisma, organization.id, admin.id);
+  await seedIntegrationsData(prisma, organization.id);
+  await seedConfigurationData(
+    prisma,
+    organization.id,
+    admin.id,
+    admin.id,
+    admin.id,
+  );
 
   const elapsedSeconds = ((Date.now() - startedAt) / 1000).toFixed(2);
   console.log(`Seed complete in ${elapsedSeconds}s.`);

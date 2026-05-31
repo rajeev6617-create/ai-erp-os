@@ -1,6 +1,7 @@
 "use client";
 
 import { roleDashboardConfig, roleLabel } from "@/lib/dashboard/role-config";
+import type { HomeDashboardSnapshot } from "@/lib/dashboard/home";
 import type { DashboardUser } from "@/lib/dashboard/mock-data";
 import { Badge } from "@/components/ui/badge";
 import { WorkflowSummary } from "@/components/dashboard/workflow-summary";
@@ -11,7 +12,13 @@ import { AiAssistantPanel } from "@/components/dashboard/ai-assistant-panel";
 import { EnterpriseAiWorkflowIntelligence } from "@/components/dashboard/enterprise-ai-workflow-intelligence";
 import { DashboardReportActions } from "@/components/reports/dashboard-report-actions";
 
-export function RoleDashboard({ user }: { user: DashboardUser }) {
+export function RoleDashboard({
+  user,
+  snapshot,
+}: {
+  user: DashboardUser;
+  snapshot: HomeDashboardSnapshot;
+}) {
   const config = roleDashboardConfig[user.role];
 
   return (
@@ -39,7 +46,7 @@ export function RoleDashboard({ user }: { user: DashboardUser }) {
         </div>
       </header>
 
-      {config.showWorkflows && <WorkflowSummary />}
+      {config.showWorkflows && <WorkflowSummary stats={snapshot.workflowStats} />}
 
       {(config.showWorkflows || config.showApprovals || config.showFinance) && (
         <EnterpriseAiWorkflowIntelligence />
@@ -48,17 +55,17 @@ export function RoleDashboard({ user }: { user: DashboardUser }) {
       <div className="grid gap-4 lg:grid-cols-12">
         {config.showFinance && (
           <div className="lg:col-span-4">
-            <FinanceSummary />
+            <FinanceSummary summary={snapshot.financeSummary} />
           </div>
         )}
         {config.showApprovals && (
           <div className={config.showFinance ? "lg:col-span-4" : "lg:col-span-6"}>
-            <ApprovalQueue />
+            <ApprovalQueue items={snapshot.approvals} />
           </div>
         )}
         {config.showAudit && (
           <div className={config.showFinance ? "lg:col-span-4" : "lg:col-span-6"}>
-            <AuditAlerts />
+            <AuditAlerts alerts={snapshot.auditAlerts} />
           </div>
         )}
         {config.showAiPanel && (

@@ -1,8 +1,13 @@
 import { IndianRupee, PieChart, Receipt, Wallet } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { financeSummary, formatInr } from "@/lib/dashboard/mock-data";
+import type { HomeDashboardSnapshot } from "@/lib/dashboard/home";
+import { formatInr } from "@/lib/dashboard/mock-data";
 
-export function FinanceSummary() {
+export function FinanceSummary({
+  summary,
+}: {
+  summary: HomeDashboardSnapshot["financeSummary"];
+}) {
   return (
     <Card>
       <CardHeader>
@@ -14,39 +19,39 @@ export function FinanceSummary() {
           <FinanceRow
             icon={IndianRupee}
             label="Revenue MTD"
-            value={formatInr(financeSummary.revenueMtd)}
+            value={formatInr(summary.revenueMtd)}
             accent="text-emerald-600 dark:text-emerald-400"
           />
           <FinanceRow
             icon={Wallet}
             label="Expenses MTD"
-            value={formatInr(financeSummary.expensesMtd)}
+            value={formatInr(summary.expensesMtd)}
           />
           <FinanceRow
             icon={Receipt}
             label="Outstanding invoices"
-            value={formatInr(financeSummary.outstandingInvoices)}
+            value={formatInr(summary.outstandingInvoices)}
           />
           <FinanceRow
             icon={PieChart}
             label="GST liability"
-            value={formatInr(financeSummary.gstLiability)}
+            value={formatInr(summary.gstLiability)}
           />
         </div>
         <div>
           <div className="mb-1.5 flex justify-between text-xs">
             <span className="text-muted-foreground">Budget utilization</span>
-            <span className="font-medium">{financeSummary.budgetUtilization}%</span>
+            <span className="font-medium">{summary.budgetUtilization}%</span>
           </div>
           <div className="h-2 overflow-hidden rounded-full bg-muted">
             <div
               className="h-full rounded-full bg-primary transition-all"
-              style={{ width: `${financeSummary.budgetUtilization}%` }}
+              style={{ width: `${Math.min(100, summary.budgetUtilization)}%` }}
             />
           </div>
         </div>
         <p className="text-xs text-muted-foreground">
-          {financeSummary.pendingPayments} payments pending approval
+          {summary.pendingPayments} payments pending approval
         </p>
       </CardContent>
     </Card>

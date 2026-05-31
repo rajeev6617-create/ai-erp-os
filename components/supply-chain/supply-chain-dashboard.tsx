@@ -2,7 +2,9 @@ import {
   AlertTriangle,
   BarChart3,
   Boxes,
+  CircleDollarSign,
   ClipboardCheck,
+  ClipboardList,
   Factory,
   GitBranch,
   PackageCheck,
@@ -28,6 +30,8 @@ import type {
   StockMovementView,
   SupplyChainAiAlertView,
   SupplyChainAuditView,
+  WarehouseApprovalView,
+  WarehouseWorkflowStageView,
   WarehouseView,
 } from "@/lib/supply-chain/types";
 
@@ -44,6 +48,7 @@ export function InventoryDashboard({ data }: { data: InventoryDashboardData }) {
         icons={[Warehouse, BarChart3, PackageSearch, AlertTriangle]}
       />
       <InventoryAnalytics data={data} />
+      <WarehouseWorkflowCard stages={data.workflowStages} />
       <section className="grid gap-4 xl:grid-cols-12">
         <div className="xl:col-span-5">
           <WarehousesCard warehouses={data.warehouses} />
@@ -67,6 +72,14 @@ export function InventoryDashboard({ data }: { data: InventoryDashboardData }) {
         </div>
         <div className="xl:col-span-6">
           <DispatchesCard dispatches={data.dispatches} />
+        </div>
+      </section>
+      <section className="grid gap-4 xl:grid-cols-12">
+        <div className="xl:col-span-7">
+          <WarehouseApprovalsCard approvals={data.approvals} />
+        </div>
+        <div className="xl:col-span-5">
+          <InventoryFinanceImpactCard data={data.financeImpact} />
         </div>
       </section>
       <AuditCard logs={data.auditLogs} />
@@ -161,6 +174,51 @@ function Metric({ label, value }: { label: string; value: string }) {
       <p className="text-xs text-muted-foreground">{label}</p>
       <p className="mt-1 text-lg font-semibold">{value}</p>
     </div>
+  );
+}
+
+function WarehouseWorkflowCard({ stages }: { stages: WarehouseWorkflowStageView[] }) {
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <GitBranch className="h-4 w-4 text-primary" />
+          Warehouse control flow
+        </CardTitle>
+        <CardDescription>
+          Inbound receiving, storage controls, replenishment, and outbound fulfillment
+        </CardDescription>
+      </CardHeader>
+      <CardContent>
+        {stages.length === 0 ? (
+          <EmptyState
+            icon={GitBranch}
+            title="No warehouse stages"
+            description="Warehouse workflow controls will appear here."
+          />
+        ) : (
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+            {stages.map((stage, index) => (
+              <div key={stage.key} className="rounded-lg border border-border p-3">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-xs text-muted-foreground">Stage {index + 1}</p>
+                    <p className="mt-1 text-sm font-semibold">{stage.label}</p>
+                  </div>
+                  <Badge variant={statusVariant(stage.status)}>
+                    {formatStatus(stage.status)}
+                  </Badge>
+                </div>
+                <p className="mt-2 text-xs text-muted-foreground">{stage.description}</p>
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {stage.openItems} open | Owner {formatStatus(stage.ownerRole)}
+                </p>
+              </div>
+            ))}
+          </div>
+        )}
+      </CardContent>
+    </Card>
   );
 }
 
@@ -367,6 +425,100 @@ function DispatchesCard({ dispatches }: { dispatches: DispatchView[] }) {
   );
 }
 
+function WarehouseApprovalsCard({ approvals }: { approvals: WarehouseApprovalView[] }) {
+  return (
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ClipboardList className="h-4 w-4 text-primary" />
+          Warehouse approval queue
+        </CardTitle>
+        <CardDescription>Human review gates for controlled inventory exceptions</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        {approvals.length === 0 ? (
+          <EmptyState
+            icon={ClipboardList}
+            title="No approvals pending"
+            description="Warehouse control exceptions requiring human review will appear here."
+          />
+        ) : (
+          approvals.map((approval) => (
+            <div key={approval.id} className="rounded-lg border border-border p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold">{approval.title}</p>
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    {approval.reference} | {approval.stage}
+                  </p>
+                </div>
+                <Badge variant={statusVariant(approval.status)}>
+                  {formatStatus(approval.status)}
+                </Badge>
+              </div>
+              <p className="mt-3 text-xs text-muted-foreground">
+                {approval.impact} | Owner {formatStatus(approval.ownerRole)}
+              </p>
+            </div>
+          ))
+        )}
+      </CardContent>
+    </Card>
+  );
+}
+
+function InventoryFinanceImpactCard({
+  data,
+}: {
+  data: InventoryDashboardData["financeImpact"];
+}) {
+  return (
+    <Card className="h-full">
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <CircleDollarSign className="h-4 w-4 text-primary" />
+          Finance impact
+        </CardTitle>
+        <CardDescription>Inventory valuation and operational exposure</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <FinanceImpactRow label="On-hand stock value" value={formatInr(data.stockValue)} />
+        <FinanceImpactRow label="Reserved stock value" value={formatInr(data.reservedStockValue)} />
+        <FinanceImpactRow label="Ledger movement value" value={formatInr(data.movementValue)} />
+        <FinanceImpactRow
+          label="Blocked receipt value"
+          value={formatInr(data.blockedReceiptValue)}
+          attention={data.blockedReceiptValue > 0}
+        />
+        <FinanceImpactRow
+          label="Dispatch exposure"
+          value={formatInr(data.dispatchExposure)}
+          attention={data.dispatchExposure > 0}
+        />
+      </CardContent>
+    </Card>
+  );
+}
+
+function FinanceImpactRow({
+  label,
+  value,
+  attention = false,
+}: {
+  label: string;
+  value: string;
+  attention?: boolean;
+}) {
+  return (
+    <div className="flex items-center justify-between gap-3 rounded-lg border border-border p-3 text-sm">
+      <span className="text-muted-foreground">{label}</span>
+      <span className={attention ? "font-semibold text-destructive" : "font-semibold"}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
 function ProductionPlansCard({ plans }: { plans: ProductionPlanView[] }) {
   return (
     <Card className="h-full">
@@ -532,6 +684,9 @@ function AiAlertsCard({ alerts }: { alerts: SupplyChainAiAlertView[] }) {
                   ? ""
                   : ` | ${Math.round(alert.confidence)}% confidence`}
               </p>
+              {alert.recommendedAction ? (
+                <p className="mt-2 text-xs font-medium">{alert.recommendedAction}</p>
+              ) : null}
             </div>
           ))
         )}

@@ -1,9 +1,13 @@
 import { Activity, CheckCircle2, Clock, XCircle } from "lucide-react";
 import { CardDescription, CardTitle } from "@/components/ui/card";
 import { StatCard } from "@/components/ui/stat-card";
-import { workflowStats } from "@/lib/dashboard/mock-data";
+import type { HomeDashboardSnapshot } from "@/lib/dashboard/home";
 
-export function WorkflowSummary() {
+export function WorkflowSummary({
+  stats,
+}: {
+  stats: HomeDashboardSnapshot["workflowStats"];
+}) {
   return (
     <section>
       <div className="mb-3">
@@ -13,28 +17,28 @@ export function WorkflowSummary() {
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
         <StatCard
           label="Active runs"
-          value={String(workflowStats.active)}
-          change="+3 from yesterday"
+          value={String(stats.active)}
+          change={`${stats.pending} awaiting action`}
           trend="up"
           icon={Activity}
         />
         <StatCard
           label="Awaiting action"
-          value={String(workflowStats.pending)}
-          change="5 need approval"
+          value={String(stats.pending)}
+          change={`${stats.active} active runs`}
           trend="neutral"
           icon={Clock}
         />
         <StatCard
           label="Completed today"
-          value={String(workflowStats.completedToday)}
-          change="Avg 18 min"
+          value={String(stats.completedToday)}
+          change={`Avg ${stats.avgCompletionMins} min`}
           trend="up"
           icon={CheckCircle2}
         />
         <StatCard
           label="Failed"
-          value={String(workflowStats.failed)}
+          value={String(stats.failed)}
           change="Requires review"
           trend="down"
           icon={XCircle}
