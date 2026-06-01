@@ -19,6 +19,7 @@ import {
   Factory,
   ClipboardCheck,
   BriefcaseBusiness,
+  FileSearch,
   type LucideIcon,
 } from "lucide-react";
 
@@ -176,13 +177,27 @@ export const mainNavigation: NavItem[] = [
   },
   {
     label: "Compliance",
-    href: "/dashboard/compliance",
+    href: "/dashboard/operations/compliance",
     icon: Shield,
     roles: [
       "super-admin",
       "organization-admin",
       "manager",
       "cfo",
+      "finance-manager",
+      "auditor",
+    ],
+  },
+  {
+    label: "Audit",
+    href: "/dashboard/operations/audit",
+    icon: FileSearch,
+    roles: [
+      "super-admin",
+      "organization-admin",
+      "manager",
+      "cfo",
+      "finance-manager",
       "auditor",
     ],
   },

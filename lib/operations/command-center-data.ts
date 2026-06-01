@@ -15,6 +15,7 @@ import type {
   SupplyChainAiAlertView,
   SupplyChainAuditView,
 } from "@/lib/supply-chain/types";
+import { getComplianceAuditDemoData } from "@/lib/operations/compliance-audit-data";
 
 export type EnterpriseSignalSeverity = "LOW" | "MEDIUM" | "HIGH" | "CRITICAL";
 export type CommandCenterModuleStatus = "healthy" | "watch" | "attention";
@@ -105,6 +106,7 @@ export interface OperationsCommandCenterData {
 export async function getOperationsCommandCenterData(
   organizationId: string,
 ): Promise<OperationsCommandCenterData> {
+  const complianceAudit = getComplianceAuditDemoData();
   const [p2p, otc, r2r, users, crm, srm, inventory, production] = await Promise.all([
     getOperationModuleDashboard(organizationId, "p2p"),
     getOperationModuleDashboard(organizationId, "otc"),
@@ -143,6 +145,18 @@ export async function getOperationsCommandCenterData(
     ...production.alerts.map((alert) =>
       supplyChainSignal("Production", "/dashboard/operations/production", alert),
     ),
+    ...complianceAudit.aiInsights.map((insight) => ({
+      id: insight.id,
+      module: "Compliance & Audit",
+      title: insight.title,
+      description: insight.description,
+      severity: insight.severity,
+      signalType: insight.insightType,
+      confidence: insight.confidence,
+      recommendedAction: insight.recommendedAction,
+      href: "/dashboard/operations/compliance",
+      source: "compliance-audit.ai",
+    })),
   ].sort(signalSort);
 
   const approvals = [
@@ -165,17 +179,39 @@ export async function getOperationsCommandCenterData(
         dueAt: item.submittedAt,
         href: "/dashboard/operations/srm",
       })),
+    ...complianceAudit.approvalHistory
+      .filter((item) => item.status === "WAITING_APPROVAL")
+      .map((item) => ({
+        id: item.id,
+        module: "Compliance & Audit",
+        reference: item.reference,
+        title: item.workflow,
+        ownerRole: item.approver,
+        amount: null,
+        dueAt: item.actedAt,
+        href: "/dashboard/operations/audit",
+      })),
   ].sort((left, right) => compareIso(left.dueAt, right.dueAt));
 
-  const financeImpacts = operationModules
-    .flatMap((item) =>
+  const financeImpacts = [
+    ...operationModules.flatMap((item) =>
       item.data
         ? item.data.financeImpacts.map((impact) =>
             financeImpact(item.label, item.href, impact),
           )
         : [],
-    )
-    .sort((left, right) => Math.abs(right.amount) - Math.abs(left.amount));
+    ),
+    ...complianceAudit.financeImpacts.map((impact) => ({
+      id: impact.id,
+      module: "Compliance & Audit",
+      title: impact.title,
+      impactType: impact.impactType,
+      amount: impact.amount,
+      direction: "NEUTRAL",
+      period: impact.period,
+      href: "/dashboard/operations/compliance",
+    })),
+  ].sort((left, right) => Math.abs(right.amount) - Math.abs(left.amount));
 
   const auditEvents = [
     ...operationModules.flatMap((item) =>
@@ -203,6 +239,15 @@ export async function getOperationsCommandCenterData(
     ...production.auditLogs.map((event) =>
       supplyChainAudit("Production", "/dashboard/operations/production", event),
     ),
+    ...complianceAudit.auditLogs.map((event) => ({
+      id: event.id,
+      module: "Compliance & Audit",
+      action: event.action,
+      severity: event.severity,
+      createdAt: event.occurredAt,
+      reference: event.reference,
+      href: "/dashboard/operations/audit",
+    })),
   ].sort((left, right) => compareIso(right.createdAt, left.createdAt));
 
   const modules = [
@@ -254,6 +299,18 @@ export async function getOperationsCommandCenterData(
       production.alerts.filter((alert) => isEscalated(alert.severity)).length,
       0,
     ),
+    relationshipSummary(
+      "compliance-audit",
+      "Compliance & Audit",
+      "/dashboard/operations/compliance",
+      "Statutory filing, evidence, audit observations, remediation, and closure.",
+      complianceAudit.dueDates.filter((item) => item.status !== "COMPLETED").length +
+        complianceAudit.auditObservations.filter((item) => item.status !== "CLOSED").length +
+        complianceAudit.exceptions.filter((item) => item.status !== "CLOSED").length,
+      complianceAudit.approvalHistory.filter((item) => item.status === "WAITING_APPROVAL").length,
+      complianceAudit.aiInsights.filter((item) => isEscalated(item.severity)).length,
+      complianceAudit.financeImpacts.reduce((sum, impact) => sum + impact.amount, 0),
+    ),
     operationSummary("users", "User Operations", "/dashboard/operations/users", users),
   ];
 
@@ -299,6 +356,17 @@ export async function getOperationsCommandCenterData(
       "/dashboard/operations/r2r",
       moduleStatus(r2r?.kpis.highRiskAlerts ?? 0, r2r?.kpis.openRecords ?? 0),
       r2r?.stages.length ?? 0,
+    ),
+    journey(
+      "compliance-to-closure",
+      "Compliance-to-audit closure chain",
+      "Statutory calendar -> filing -> evidence -> audit observation -> remediation -> closure",
+      "/dashboard/operations/compliance",
+      moduleStatus(
+        complianceAudit.aiInsights.filter((item) => isEscalated(item.severity)).length,
+        complianceAudit.auditObservations.filter((item) => item.status !== "CLOSED").length,
+      ),
+      complianceAudit.complianceCapabilities.length + complianceAudit.auditCapabilities.length,
     ),
   ];
 
