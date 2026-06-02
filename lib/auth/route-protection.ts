@@ -172,6 +172,11 @@ export const DASHBOARD_ROUTE_POLICIES = [
     description: "Integration administration",
   },
   {
+    prefix: "/dashboard/foundation",
+    roles: DASHBOARD_ACCESS_ROLES,
+    description: "Foundation company setup and legal entities",
+  },
+  {
     prefix: "/dashboard",
     roles: DASHBOARD_ACCESS_ROLES,
     description: "Dashboard landing",

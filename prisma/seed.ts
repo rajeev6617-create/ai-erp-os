@@ -3,6 +3,7 @@ import bcrypt from "bcryptjs";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import {
+  CompanyStatus,
   MemberRole,
   PrismaClient,
   TenantStatus,
@@ -56,6 +57,44 @@ async function seedOrganization() {
         seedProfile: "production-minimal",
         seededAt: new Date().toISOString(),
       },
+    },
+  });
+}
+
+async function seedFoundationCompany(organizationId: string) {
+  return prisma.company.upsert({
+    where: {
+      organizationId_companyCode: {
+        organizationId,
+        companyCode: "ACME",
+      },
+    },
+    create: {
+      organizationId,
+      companyCode: "ACME",
+      companyName: "Acme India Manufacturing Pvt Ltd",
+      legalName: "Acme India Manufacturing Private Limited",
+      registeredAddress: "Bistupur Industrial Estate, Jamshedpur, Jharkhand",
+      country: "India",
+      state: "Jharkhand",
+      city: "Jamshedpur",
+      currency: "INR",
+      fiscalYearStart: new Date("2025-04-01T00:00:00.000Z"),
+      fiscalYearEnd: new Date("2026-03-31T00:00:00.000Z"),
+      status: CompanyStatus.ACTIVE,
+    },
+    update: {
+      companyName: "Acme India Manufacturing Pvt Ltd",
+      legalName: "Acme India Manufacturing Private Limited",
+      registeredAddress: "Bistupur Industrial Estate, Jamshedpur, Jharkhand",
+      country: "India",
+      state: "Jharkhand",
+      city: "Jamshedpur",
+      currency: "INR",
+      fiscalYearStart: new Date("2025-04-01T00:00:00.000Z"),
+      fiscalYearEnd: new Date("2026-03-31T00:00:00.000Z"),
+      status: CompanyStatus.ACTIVE,
+      deletedAt: null,
     },
   });
 }
@@ -175,6 +214,7 @@ async function main() {
     seedOrganization(),
     hashSeedAdminPassword(password),
   ]);
+  await seedFoundationCompany(organization.id);
   const orgAdminRole = await seedOrgAdminRole(organization.id);
   const admin = await seedAdminUser(organization.id, orgAdminRole.id, passwordHash);
 

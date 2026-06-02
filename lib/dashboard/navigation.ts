@@ -219,6 +219,21 @@ export const mainNavigation: NavItem[] = [
     roles: ["super-admin", "organization-admin", "manager"],
   },
   {
+    label: "Foundation - Company Setup",
+    href: "/dashboard/foundation/company",
+    icon: Building2,
+    roles: [
+      "super-admin",
+      "organization-admin",
+      "manager",
+      "cfo",
+      "finance-manager",
+      "auditor",
+      "employee",
+      "ai-agent",
+    ],
+  },
+  {
     label: "Organization",
     href: "/dashboard/organization",
     icon: Building2,

@@ -29,6 +29,11 @@ enum SubscriptionTier {
   CUSTOM
 }
 
+enum CompanyStatus {
+  ACTIVE
+  INACTIVE
+}
+
 enum UserStatus {
   INVITED
   ACTIVE
@@ -488,6 +493,7 @@ model Organization {
   deletedAt DateTime?
 
   members               OrganizationMember[]
+  companies             Company[]
   departments           Department[]
   roles                 Role[]
   workflows             Workflow[]
@@ -563,6 +569,37 @@ model Organization {
   @@index([gstin])
   @@index([pan])
   @@map("organizations")
+}
+
+model Company {
+  id                String        @id @default(cuid())
+  organizationId    String
+  companyCode       String        @db.VarChar(20)
+  companyName       String
+  legalName         String
+  cin               String?       @db.VarChar(21)
+  gstin             String?       @db.VarChar(15)
+  pan               String?       @db.VarChar(10)
+  registeredAddress String
+  country           String
+  state             String
+  city              String
+  currency          String        @db.Char(3)
+  fiscalYearStart   DateTime
+  fiscalYearEnd     DateTime
+  status            CompanyStatus @default(ACTIVE)
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  deletedAt         DateTime?
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, companyCode])
+  @@index([organizationId, status, deletedAt])
+  @@index([organizationId, companyName])
+  @@index([organizationId, gstin])
+  @@index([organizationId, pan])
+  @@map("companies")
 }
 
 // =============================================================================
