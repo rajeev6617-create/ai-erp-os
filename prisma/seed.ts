@@ -4,6 +4,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import {
   CompanyStatus,
+  LocationStatus,
+  LocationType,
   MemberRole,
   PrismaClient,
   TenantStatus,
@@ -97,6 +99,76 @@ async function seedFoundationCompany(organizationId: string) {
       deletedAt: null,
     },
   });
+}
+
+async function seedFoundationLocations(organizationId: string, companyId: string) {
+  const locations = [
+    {
+      locationCode: "PLT-JSR",
+      locationName: "Jamshedpur Manufacturing Plant",
+      locationType: LocationType.PLANT,
+      address: "Adityapur Industrial Area, Jamshedpur, Jharkhand",
+      country: "India",
+      state: "Jharkhand",
+      city: "Jamshedpur",
+      pincode: "831013",
+      contactPerson: "Plant Administration",
+      contactEmail: "plant-admin@acme-india.local",
+      contactPhone: "+91-657-555-0101",
+      isPrimary: true,
+    },
+    {
+      locationCode: "WH-JSR",
+      locationName: "Jamshedpur Central Warehouse",
+      locationType: LocationType.WAREHOUSE,
+      address: "Gamharia Logistics Park, Jamshedpur, Jharkhand",
+      country: "India",
+      state: "Jharkhand",
+      city: "Jamshedpur",
+      pincode: "832108",
+      contactPerson: "Warehouse Operations",
+      contactEmail: "warehouse-jsr@acme-india.local",
+      contactPhone: "+91-657-555-0102",
+      isPrimary: false,
+    },
+    {
+      locationCode: "BR-KOL",
+      locationName: "Kolkata Sales Branch",
+      locationType: LocationType.BRANCH,
+      address: "Salt Lake Sector V, Kolkata, West Bengal",
+      country: "India",
+      state: "West Bengal",
+      city: "Kolkata",
+      pincode: "700091",
+      contactPerson: "Regional Sales Office",
+      contactEmail: "sales-kolkata@acme-india.local",
+      contactPhone: "+91-33-5550-0103",
+      isPrimary: false,
+    },
+  ];
+
+  for (const location of locations) {
+    await prisma.location.upsert({
+      where: {
+        organizationId_locationCode: {
+          organizationId,
+          locationCode: location.locationCode,
+        },
+      },
+      create: {
+        organizationId,
+        companyId,
+        ...location,
+        status: LocationStatus.ACTIVE,
+      },
+      update: {
+        companyId,
+        ...location,
+        status: LocationStatus.ACTIVE,
+        deletedAt: null,
+      },
+    });
+  }
 }
 
 async function seedOrgAdminRole(organizationId: string) {
@@ -214,7 +286,8 @@ async function main() {
     seedOrganization(),
     hashSeedAdminPassword(password),
   ]);
-  await seedFoundationCompany(organization.id);
+  const company = await seedFoundationCompany(organization.id);
+  await seedFoundationLocations(organization.id, company.id);
   const orgAdminRole = await seedOrgAdminRole(organization.id);
   const admin = await seedAdminUser(organization.id, orgAdminRole.id, passwordHash);
 
