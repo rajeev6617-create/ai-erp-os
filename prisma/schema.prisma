@@ -47,6 +47,25 @@ enum LocationStatus {
   INACTIVE
 }
 
+enum DepartmentType {
+  FINANCE
+  PURCHASE
+  SALES
+  STORES
+  PRODUCTION
+  QUALITY
+  HR
+  ADMIN
+  IT
+  MANAGEMENT
+  OTHER
+}
+
+enum DepartmentStatus {
+  ACTIVE
+  INACTIVE
+}
+
 enum UserStatus {
   INVITED
   ACTIVE
@@ -608,6 +627,7 @@ model Company {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   locations    Location[]
+  departments  Department[]
 
   @@unique([organizationId, companyCode])
   @@index([organizationId, status, deletedAt])
@@ -641,6 +661,7 @@ model Location {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  departments  Department[]
 
   @@unique([organizationId, locationCode])
   @@index([organizationId, status, deletedAt])
@@ -688,6 +709,7 @@ model User {
   activityLogs       ActivityLog[]
   notifications      Notification[]
   documentsCreated   Document[]           @relation("DocumentCreator")
+  departmentsHeaded  Department[]         @relation("DepartmentHead")
   apiKeys                  ApiKey[]
   sessions                 UserSession[]
   mfaFactors               UserMfaFactor[]
@@ -810,13 +832,20 @@ model UserRole {
 // =============================================================================
 
 model Department {
-  id             String  @id @default(cuid())
-  organizationId String
-  parentId       String?
-  name           String
-  code           String?
+  id                   String           @id @default(cuid())
+  organizationId       String
+  companyId            String
+  locationId           String?
+  departmentCode       String           @map("code") @db.VarChar(30)
+  departmentName       String           @map("name")
+  departmentType       DepartmentType   @default(OTHER)
+  parentDepartmentId   String?          @map("parentId")
+  departmentHeadUserId String?
+  costCenterCode       String?
+  status               DepartmentStatus @default(ACTIVE)
+
+  // Retained for compatibility with existing employee-hierarchy and metadata consumers.
   description    String?
-  costCenterCode String?
   headEmployeeId String?
   metadata       Json?
 
@@ -824,16 +853,23 @@ model Department {
   updatedAt DateTime  @updatedAt
   deletedAt DateTime?
 
-  organization Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  parent       Department?       @relation("DepartmentTree", fields: [parentId], references: [id], onDelete: SetNull)
-  children     Department[]      @relation("DepartmentTree")
-  employees    EmployeeProfile[]
-  userRoles    UserRole[]
-  documents    Document[]
-  budgets      Budget[]
+  organization   Organization      @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  company        Company           @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  location       Location?         @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  parent         Department?       @relation("DepartmentTree", fields: [parentDepartmentId], references: [id], onDelete: SetNull)
+  children       Department[]      @relation("DepartmentTree")
+  departmentHead User?             @relation("DepartmentHead", fields: [departmentHeadUserId], references: [id], onDelete: SetNull)
+  employees      EmployeeProfile[]
+  userRoles      UserRole[]
+  documents      Document[]
+  budgets        Budget[]
 
-  @@unique([organizationId, code])
-  @@index([organizationId, parentId, deletedAt])
+  @@unique([organizationId, departmentCode])
+  @@index([organizationId, companyId, status, deletedAt])
+  @@index([organizationId, locationId, status])
+  @@index([organizationId, parentDepartmentId, deletedAt])
+  @@index([organizationId, departmentType])
+  @@index([departmentHeadUserId])
   @@map("departments")
 }
 

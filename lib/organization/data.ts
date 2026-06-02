@@ -25,11 +25,11 @@ export async function getOrganizationDashboard(
       where: { organizationId, deletedAt: null },
       select: {
         id: true,
-        code: true,
-        name: true,
+        departmentCode: true,
+        departmentName: true,
         costCenterCode: true,
       },
-      orderBy: { name: "asc" },
+      orderBy: { departmentName: "asc" },
     }),
     prisma.employeeProfile.groupBy({
       by: ["departmentId"],
@@ -59,8 +59,8 @@ export async function getOrganizationDashboard(
     },
     departments: departments.map((dept) => ({
       id: dept.id,
-      code: dept.code,
-      name: dept.name,
+      code: dept.departmentCode,
+      name: dept.departmentName,
       costCenterCode: dept.costCenterCode,
       employeeCount: countByDept.get(dept.id) ?? 0,
     })),

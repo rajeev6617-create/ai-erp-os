@@ -250,6 +250,21 @@ export const mainNavigation: NavItem[] = [
     ],
   },
   {
+    label: "Foundation - Departments",
+    href: "/dashboard/foundation/departments",
+    icon: BriefcaseBusiness,
+    roles: [
+      "super-admin",
+      "organization-admin",
+      "manager",
+      "cfo",
+      "finance-manager",
+      "auditor",
+      "employee",
+      "ai-agent",
+    ],
+  },
+  {
     label: "Organization",
     href: "/dashboard/organization",
     icon: Building2,

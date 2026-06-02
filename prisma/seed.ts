@@ -4,6 +4,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import {
   CompanyStatus,
+  DepartmentStatus,
+  DepartmentType,
   LocationStatus,
   LocationType,
   MemberRole,
@@ -171,6 +173,80 @@ async function seedFoundationLocations(organizationId: string, companyId: string
   }
 }
 
+async function seedFoundationDepartments(
+  organizationId: string,
+  companyId: string,
+) {
+  const locations = await prisma.location.findMany({
+    where: { organizationId, companyId },
+    select: { id: true, locationCode: true },
+  });
+  const locationByCode = new Map(
+    locations.map((location) => [location.locationCode, location.id]),
+  );
+  const departments = [
+    {
+      departmentCode: "FIN",
+      departmentName: "Finance & Accounts",
+      departmentType: DepartmentType.FINANCE,
+      locationId: null,
+    },
+    {
+      departmentCode: "PUR",
+      departmentName: "Purchase Department",
+      departmentType: DepartmentType.PURCHASE,
+      locationId: null,
+    },
+    {
+      departmentCode: "STR",
+      departmentName: "Stores Department",
+      departmentType: DepartmentType.STORES,
+      locationId: locationByCode.get("WH-JSR") ?? null,
+    },
+    {
+      departmentCode: "PRD",
+      departmentName: "Production Department",
+      departmentType: DepartmentType.PRODUCTION,
+      locationId: locationByCode.get("PLT-JSR") ?? null,
+    },
+    {
+      departmentCode: "QLT",
+      departmentName: "Quality Department",
+      departmentType: DepartmentType.QUALITY,
+      locationId: locationByCode.get("PLT-JSR") ?? null,
+    },
+    {
+      departmentCode: "SLS",
+      departmentName: "Sales Department",
+      departmentType: DepartmentType.SALES,
+      locationId: locationByCode.get("BR-KOL") ?? null,
+    },
+  ];
+
+  for (const department of departments) {
+    await prisma.department.upsert({
+      where: {
+        organizationId_departmentCode: {
+          organizationId,
+          departmentCode: department.departmentCode,
+        },
+      },
+      create: {
+        organizationId,
+        companyId,
+        ...department,
+        status: DepartmentStatus.ACTIVE,
+      },
+      update: {
+        companyId,
+        ...department,
+        status: DepartmentStatus.ACTIVE,
+        deletedAt: null,
+      },
+    });
+  }
+}
+
 async function seedOrgAdminRole(organizationId: string) {
   return prisma.role.upsert({
     where: { organizationId_slug: { organizationId, slug: ROLE_ORG_ADMIN } },
@@ -288,6 +364,7 @@ async function main() {
   ]);
   const company = await seedFoundationCompany(organization.id);
   await seedFoundationLocations(organization.id, company.id);
+  await seedFoundationDepartments(organization.id, company.id);
   const orgAdminRole = await seedOrgAdminRole(organization.id);
   const admin = await seedAdminUser(organization.id, orgAdminRole.id, passwordHash);
 

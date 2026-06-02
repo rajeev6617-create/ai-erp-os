@@ -60,14 +60,30 @@ async function upsertDepartment(
   code: string,
   name: string,
 ) {
+  const company = await prisma.company.findFirst({
+    where: { organizationId, status: "ACTIVE", deletedAt: null },
+    select: { id: true },
+    orderBy: { createdAt: "asc" },
+  });
+  if (!company) {
+    throw new Error("Finance ERP seed requires an active company/legal entity");
+  }
+
   const existing = await prisma.department.findFirst({
-    where: { organizationId, code, deletedAt: null },
+    where: { organizationId, departmentCode: code, deletedAt: null },
     select: { id: true },
   });
   if (existing) return existing;
 
   return prisma.department.create({
-    data: { organizationId, code, name },
+    data: {
+      organizationId,
+      companyId: company.id,
+      departmentCode: code,
+      departmentName: name,
+      departmentType: "OTHER",
+      status: "ACTIVE",
+    },
     select: { id: true },
   });
 }

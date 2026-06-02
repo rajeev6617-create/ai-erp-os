@@ -23,7 +23,7 @@ export async function getPeopleDashboard(
     }),
     prisma.employeeProfile.findMany({
       where: { organizationId, deletedAt: null },
-      include: { department: { select: { name: true } } },
+      include: { department: { select: { departmentName: true } } },
     }),
   ]);
 
@@ -71,7 +71,7 @@ export async function getPeopleDashboard(
         role: member.role,
         status: member.user.status,
         employeeCode: profile?.employeeCode ?? null,
-        department: profile?.department?.name ?? null,
+        department: profile?.department?.departmentName ?? null,
         designation: profile?.designation ?? null,
       };
     }),

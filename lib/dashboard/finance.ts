@@ -254,7 +254,7 @@ export async function getFinanceDashboard(
     }),
     prisma.budget.findMany({
       where: { organizationId },
-      include: { department: { select: { name: true } } },
+      include: { department: { select: { departmentName: true } } },
       orderBy: [{ updatedAt: "desc" }, { name: "asc" }],
       take: 12,
     }),
@@ -460,7 +460,7 @@ function buildBudgetTracking(
     category: string;
     allocated: unknown;
     consumed: unknown;
-    department: { name: string } | null;
+    department: { departmentName: string } | null;
   }>,
 ): FinanceDashboardData["budgetTracking"] {
   const budgetItems = budgets.map((budget) => {
@@ -471,7 +471,7 @@ function buildBudgetTracking(
       id: budget.id,
       name: budget.name,
       category: budget.category,
-      departmentName: budget.department?.name ?? "Organization",
+      departmentName: budget.department?.departmentName ?? "Organization",
       allocated,
       consumed,
       utilization: allocated > 0 ? Math.round((consumed / allocated) * 100) : 0,
