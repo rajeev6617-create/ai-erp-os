@@ -20,7 +20,9 @@ import {
   ClipboardCheck,
   BriefcaseBusiness,
   FileSearch,
+  Landmark,
   MapPin,
+  Target,
   type LucideIcon,
 } from "lucide-react";
 
@@ -253,6 +255,36 @@ export const mainNavigation: NavItem[] = [
     label: "Foundation - Departments",
     href: "/dashboard/foundation/departments",
     icon: BriefcaseBusiness,
+    roles: [
+      "super-admin",
+      "organization-admin",
+      "manager",
+      "cfo",
+      "finance-manager",
+      "auditor",
+      "employee",
+      "ai-agent",
+    ],
+  },
+  {
+    label: "Foundation - Cost Centers",
+    href: "/dashboard/foundation/cost-centers",
+    icon: Landmark,
+    roles: [
+      "super-admin",
+      "organization-admin",
+      "manager",
+      "cfo",
+      "finance-manager",
+      "auditor",
+      "employee",
+      "ai-agent",
+    ],
+  },
+  {
+    label: "Foundation - Profit Centers",
+    href: "/dashboard/foundation/profit-centers",
+    icon: Target,
     roles: [
       "super-admin",
       "organization-admin",

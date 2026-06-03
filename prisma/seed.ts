@@ -4,6 +4,8 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { Pool } from "pg";
 import {
   CompanyStatus,
+  ControllingCenterStatus,
+  CostCenterType,
   DepartmentStatus,
   DepartmentType,
   LocationStatus,
@@ -247,6 +249,140 @@ async function seedFoundationDepartments(
   }
 }
 
+async function seedFoundationControllingCenters(
+  organizationId: string,
+  companyId: string,
+) {
+  const [locations, departments] = await Promise.all([
+    prisma.location.findMany({
+      where: { organizationId, companyId },
+      select: { id: true, locationCode: true },
+    }),
+    prisma.department.findMany({
+      where: { organizationId, companyId },
+      select: { id: true, departmentCode: true },
+    }),
+  ]);
+  const locationByCode = new Map(
+    locations.map((location) => [location.locationCode, location.id]),
+  );
+  const departmentByCode = new Map(
+    departments.map((department) => [
+      department.departmentCode,
+      department.id,
+    ]),
+  );
+  const validFrom = new Date("2025-04-01T00:00:00.000Z");
+  const costCenters = [
+    {
+      costCenterCode: "CC-FIN",
+      costCenterName: "Finance & Accounts Cost Center",
+      costCenterType: CostCenterType.FINANCE,
+      departmentId: departmentByCode.get("FIN") ?? null,
+      locationId: null,
+    },
+    {
+      costCenterCode: "CC-PUR",
+      costCenterName: "Purchase Cost Center",
+      costCenterType: CostCenterType.PURCHASE,
+      departmentId: departmentByCode.get("PUR") ?? null,
+      locationId: null,
+    },
+    {
+      costCenterCode: "CC-PRD",
+      costCenterName: "Production Cost Center",
+      costCenterType: CostCenterType.PRODUCTION,
+      departmentId: departmentByCode.get("PRD") ?? null,
+      locationId: locationByCode.get("PLT-JSR") ?? null,
+    },
+    {
+      costCenterCode: "CC-QLT",
+      costCenterName: "Quality Cost Center",
+      costCenterType: CostCenterType.QUALITY,
+      departmentId: departmentByCode.get("QLT") ?? null,
+      locationId: locationByCode.get("PLT-JSR") ?? null,
+    },
+    {
+      costCenterCode: "CC-MNT",
+      costCenterName: "Maintenance Cost Center",
+      costCenterType: CostCenterType.MAINTENANCE,
+      departmentId: null,
+      locationId: locationByCode.get("PLT-JSR") ?? null,
+    },
+  ];
+  const profitCenters = [
+    {
+      profitCenterCode: "PC-AUTO",
+      profitCenterName: "Automobile Components Profit Center",
+      businessSegment: "Auto Components",
+      locationId: locationByCode.get("PLT-JSR") ?? null,
+    },
+    {
+      profitCenterCode: "PC-SCRAP",
+      profitCenterName: "Scrap Conversion Profit Center",
+      businessSegment: "Manufacturing Recycling",
+      locationId: locationByCode.get("PLT-JSR") ?? null,
+    },
+  ];
+
+  for (const costCenter of costCenters) {
+    await prisma.costCenter.upsert({
+      where: {
+        organizationId_costCenterCode: {
+          organizationId,
+          costCenterCode: costCenter.costCenterCode,
+        },
+      },
+      create: {
+        organizationId,
+        companyId,
+        ...costCenter,
+        validFrom,
+        status: ControllingCenterStatus.ACTIVE,
+      },
+      update: {
+        companyId,
+        ...costCenter,
+        validFrom,
+        status: ControllingCenterStatus.ACTIVE,
+        deletedAt: null,
+      },
+    });
+
+    if (costCenter.departmentId) {
+      await prisma.department.update({
+        where: { id: costCenter.departmentId },
+        data: { costCenterCode: costCenter.costCenterCode },
+      });
+    }
+  }
+
+  for (const profitCenter of profitCenters) {
+    await prisma.profitCenter.upsert({
+      where: {
+        organizationId_profitCenterCode: {
+          organizationId,
+          profitCenterCode: profitCenter.profitCenterCode,
+        },
+      },
+      create: {
+        organizationId,
+        companyId,
+        ...profitCenter,
+        validFrom,
+        status: ControllingCenterStatus.ACTIVE,
+      },
+      update: {
+        companyId,
+        ...profitCenter,
+        validFrom,
+        status: ControllingCenterStatus.ACTIVE,
+        deletedAt: null,
+      },
+    });
+  }
+}
+
 async function seedOrgAdminRole(organizationId: string) {
   return prisma.role.upsert({
     where: { organizationId_slug: { organizationId, slug: ROLE_ORG_ADMIN } },
@@ -365,6 +501,7 @@ async function main() {
   const company = await seedFoundationCompany(organization.id);
   await seedFoundationLocations(organization.id, company.id);
   await seedFoundationDepartments(organization.id, company.id);
+  await seedFoundationControllingCenters(organization.id, company.id);
   const orgAdminRole = await seedOrgAdminRole(organization.id);
   const admin = await seedAdminUser(organization.id, orgAdminRole.id, passwordHash);
 

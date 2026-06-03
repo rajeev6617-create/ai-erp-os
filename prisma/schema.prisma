@@ -66,6 +66,24 @@ enum DepartmentStatus {
   INACTIVE
 }
 
+enum CostCenterType {
+  ADMIN
+  FINANCE
+  PURCHASE
+  SALES
+  PRODUCTION
+  QUALITY
+  MAINTENANCE
+  HR
+  IT
+  OTHER
+}
+
+enum ControllingCenterStatus {
+  ACTIVE
+  INACTIVE
+}
+
 enum UserStatus {
   INVITED
   ACTIVE
@@ -528,6 +546,8 @@ model Organization {
   companies             Company[]
   locations             Location[]
   departments           Department[]
+  costCenters           CostCenter[]
+  profitCenters         ProfitCenter[]
   roles                 Role[]
   workflows             Workflow[]
   workflowExecutions    WorkflowExecution[]
@@ -628,6 +648,8 @@ model Company {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   locations    Location[]
   departments  Department[]
+  costCenters  CostCenter[]
+  profitCenters ProfitCenter[]
 
   @@unique([organizationId, companyCode])
   @@index([organizationId, status, deletedAt])
@@ -662,6 +684,8 @@ model Location {
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   company      Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
   departments  Department[]
+  costCenters   CostCenter[]
+  profitCenters ProfitCenter[]
 
   @@unique([organizationId, locationCode])
   @@index([organizationId, status, deletedAt])
@@ -710,6 +734,8 @@ model User {
   notifications      Notification[]
   documentsCreated   Document[]           @relation("DocumentCreator")
   departmentsHeaded  Department[]         @relation("DepartmentHead")
+  costCentersResponsible   CostCenter[]   @relation("CostCenterResponsible")
+  profitCentersResponsible ProfitCenter[] @relation("ProfitCenterResponsible")
   apiKeys                  ApiKey[]
   sessions                 UserSession[]
   mfaFactors               UserMfaFactor[]
@@ -863,6 +889,7 @@ model Department {
   userRoles      UserRole[]
   documents      Document[]
   budgets        Budget[]
+  costCenters    CostCenter[]
 
   @@unique([organizationId, departmentCode])
   @@index([organizationId, companyId, status, deletedAt])
@@ -871,6 +898,67 @@ model Department {
   @@index([organizationId, departmentType])
   @@index([departmentHeadUserId])
   @@map("departments")
+}
+
+model CostCenter {
+  id                String                  @id @default(cuid())
+  organizationId    String
+  companyId         String
+  locationId        String?
+  departmentId      String?
+  costCenterCode    String                  @db.VarChar(30)
+  costCenterName    String
+  costCenterType    CostCenterType
+  responsibleUserId String?
+  validFrom         DateTime                @db.Date
+  validTo           DateTime?               @db.Date
+  status            ControllingCenterStatus @default(ACTIVE)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  deletedAt         DateTime?
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  location        Location?    @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  department      Department?  @relation(fields: [departmentId], references: [id], onDelete: SetNull)
+  responsibleUser User?        @relation("CostCenterResponsible", fields: [responsibleUserId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, costCenterCode])
+  @@index([organizationId, companyId, status, deletedAt])
+  @@index([organizationId, locationId, status])
+  @@index([organizationId, departmentId, status])
+  @@index([responsibleUserId])
+  @@index([organizationId, validFrom, validTo])
+  @@map("cost_centers")
+}
+
+model ProfitCenter {
+  id                String                  @id @default(cuid())
+  organizationId    String
+  companyId         String
+  locationId        String?
+  profitCenterCode  String                  @db.VarChar(30)
+  profitCenterName  String
+  businessSegment   String?
+  responsibleUserId String?
+  validFrom         DateTime                @db.Date
+  validTo           DateTime?               @db.Date
+  status            ControllingCenterStatus @default(ACTIVE)
+  createdAt         DateTime                @default(now())
+  updatedAt         DateTime                @updatedAt
+  deletedAt         DateTime?
+
+  organization    Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  company         Company      @relation(fields: [companyId], references: [id], onDelete: Cascade)
+  location        Location?    @relation(fields: [locationId], references: [id], onDelete: SetNull)
+  responsibleUser User?        @relation("ProfitCenterResponsible", fields: [responsibleUserId], references: [id], onDelete: SetNull)
+
+  @@unique([organizationId, profitCenterCode])
+  @@index([organizationId, companyId, status, deletedAt])
+  @@index([organizationId, locationId, status])
+  @@index([responsibleUserId])
+  @@index([organizationId, validFrom, validTo])
+  @@map("profit_centers")
 }
 
 model EmployeeProfile {
